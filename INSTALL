@@ -1,0 +1,7 @@
+#!/bin/ksh
+
+ksh
+-------------------------------------------------------
+
+echo "export SHELL=/bin/ksh"      >> ~/.profile
+echo "export AB_UNIT_HOME=${0}%/" >> ~/.profile

@@ -1,0 +1,423 @@
+#!/bin/sh
+#===============================================================================
+#
+#          FILE:  test_runner_table.ui
+# 
+#         USAGE:  export TEST_RUNNER_DEFAULT_INTERFACE=table
+# 
+#   DESCRIPTION:  
+# 
+#       OPTIONS:  ---
+#  REQUIREMENTS:  ---
+#          BUGS:  ---
+#         NOTES:  ---
+#        AUTHOR:  Philip Bowditch
+#       COMPANY:  
+#       VERSION:  1.0
+#       CREATED:  19/09/2008 18:36:49 GMT Daylight Time
+#      REVISION:  ---
+#==============================================================================
+
+#---  INCLUDES  ----------------------------------------------------------------
+#   DESCRIPTION: Defines the external scripts used by this script
+#-------------------------------------------------------------------------------
+
+if [ -z "${AB_UNIT_HOME}" ] ; then
+
+    printf "%s: %s %s\n" ERROR AB_UNIT_HOME "environment variable is not set" >&2
+    exit 1
+
+fi
+
+if [ ! -e "${AB_UNIT_HOME}" ] ; then
+
+    printf "%s: %s %s\n" ERROR AB_UNIT_HOME "environment variable points to a directory that does not exist" >&2
+    exit 2
+
+fi
+
+if [[ ! -d "${AB_UNIT_HOME}" && ! -L "${AB_UNIT_HOME}" ]] ; then
+
+    printf "%s: %s %s\n" ERROR AB_UNIT_HOME "environment variable is not a valid directory" >&2
+    exit 3
+
+fi
+
+. "${AB_UNIT_HOME}/etc/test_runner_table.cfg"
+. "${AB_UNIT_HOME}/etc/locale/test_runner_table.locale"
+
+
+#---  GLOBALS   ----------------------------------------------------------------
+#   DESCRIPTION:  Global variables used by this script
+#-------------------------------------------------------------------------------
+
+TEST_STATUS=""                  # Get all enabled tests and set them to unstarted
+TEST_RUNTIME=""                 # Get all enabled tests and set them to unfinished
+
+
+#-- FUNCTIONS ------------------------------------------------------------------
+# Function definitions for external use
+#-------------------------------------------------------------------------------
+
+function print_summary_label
+{
+    #===============================================================================
+    #          NAME:  print_summary_label
+    #   DESCRIPTION:
+    #         USAGE:  print_summary_label <x coordinate> <y coordinate>
+    #       RETURNS:
+    #===============================================================================
+
+    typeset TEST_X="${1}"
+    typeset TEST_Y="${2}"
+
+    #
+    # Get counts for all statuses
+    #
+
+    typeset TESTS_UNSTARTED=$(echo "${TEST_STATUS}" | grep ":${TEST_RUNNER_STATUS_UNSTARTED}$" | stream_line_count)
+    typeset TESTS_STARTING=$( echo "${TEST_STATUS}" | grep ":${TEST_RUNNER_STATUS_STARTING}$"  | stream_line_count)
+    typeset TESTS_INITIAL=$(  echo "${TEST_STATUS}" | grep ":${TEST_RUNNER_STATUS_INIT}$"      | stream_line_count)
+    typeset TESTS_RUNNING=$(  echo "${TEST_STATUS}" | grep ":${TEST_RUNNER_STATUS_RUNNING}$"   | stream_line_count)
+    typeset TESTS_PASSED=$(   echo "${TEST_STATUS}" | grep ":${TEST_RUNNER_STATUS_PASSED}$"    | stream_line_count)
+    typeset TESTS_IGNORED=$(  echo "${TEST_STATUS}" | grep ":${TEST_RUNNER_STATUS_IGNORED}$"   | stream_line_count)
+    typeset TESTS_FAILED=$(   echo "${TEST_STATUS}" | grep ":${TEST_RUNNER_STATUS_FAILED}$"    | stream_line_count)
+    typeset TESTS_ERRORED=$(  echo "${TEST_STATUS}" | grep ":${TEST_RUNNER_STATUS_ERRORED}$"   | stream_line_count)
+
+    typeset TOTAL_TESTS=$(ab_unit_get_registered_tests | stream_line_count)
+
+    TESTS_UNSTARTED=$(( TESTS_UNSTARTED + ${TESTS_STARTING:-0} ))
+    TESTS_RUNNING=$((   TESTS_RUNNING   + ${TESTS_INITIAL:-0} ))
+
+    #
+    # Print status results
+    #
+
+    typeset TEST_LABEL="${AB_UNIT_UNSTARTED_STRING}: ${TESTS_UNSTARTED:-0}/${TOTAL_TESTS}\t${AB_UNIT_RUNNING_STRING}: ${TESTS_RUNNING:-0}/${TOTAL_TESTS}\t${AB_UNIT_PASSED_STRING}: ${TESTS_PASSED:-0}/${TOTAL_TESTS}\t${AB_UNIT_IGNORED_STRING}: ${TESTS_IGNORED:-0}/${TOTAL_TESTS}\t${AB_UNIT_FAILED_STRING}: ${TESTS_FAILED:-0}/${TOTAL_TESTS}\t${AB_UNIT_ERRORED_STRING}: ${TESTS_ERRORED:-0}/${TOTAL_TESTS}"
+
+    ui_print_label "${TEST_LABEL}"                                                                           \
+                   "${TEST_RUNNER_LEFT_MARGIN}"                                                              \
+                   $(( ${TOTAL_TESTS:-0} + ${TEST_RUNNER_TOP_MARGIN} + ${TEST_RUNNER_RESULT_Y_PADDING:-0} )) \
+                   -1                                                                                        \
+                   left
+}
+
+
+function print_table_header
+{
+    #===============================================================================
+    #          NAME:  print_table_header
+    #   DESCRIPTION:
+    #         USAGE:  print_table_header
+    #       RETURNS:  NONE
+    #===============================================================================
+
+    let TEST_RUNNER_WIDTH="$(terminal_get_screen_width) - (TEST_RUNNER_LEFT_MARGIN + TEST_RUNNER_RIGHT_MARGIN)"
+    TEST_RUNNER_HEIGHT=$(terminal_get_screen_height)
+
+    #COL NAMES
+    #X
+    #Y
+    #WIDTH
+    ui_print_table_header "${TEST_RUNNER_SUITE_WEIGHT} ${TEST_RUNNER_NAME_WEIGHT} ${TEST_RUNNER_STATUS_WEIGHT} ${TEST_RUNNER_TIME_WEIGHT}" \
+                          "SUITE TEST_NAME STATUS SECONDS_ELAPSED"                  \
+                          ${TEST_RUNNER_LEFT_MARGIN}                                \
+                          $(( ${TEST_RUNNER_TABLE_Y} + ${TEST_RUNNER_TOP_MARGIN} )) \
+                          "${TEST_RUNNER_WIDTH}"
+}
+
+
+function print_table_footer
+{
+    #===============================================================================
+    #          NAME:  print_table_footer
+    #   DESCRIPTION:
+    #         USAGE:  print_table_footer
+    #       RETURNS:  NONE
+    #===============================================================================
+
+    let TEST_RUNNER_WIDTH="$(terminal_get_screen_width) - (TEST_RUNNER_LEFT_MARGIN + TEST_RUNNER_RIGHT_MARGIN)"
+    TEST_RUNNER_HEIGHT=$(terminal_get_screen_height)
+
+    typeset TOTAL_TESTS=$(ab_unit_get_enabled_tests | stream_line_count)
+
+    #X
+    #Y
+    #WIDTH
+    ui_print_line "${TEST_RUNNER_LEFT_MARGIN}"                              \
+                  $(( ${TEST_RUNNER_TOP_MARGIN} + ${TOTAL_TESTS:-0} + 10 )) \
+                  "${TEST_RUNNER_WIDTH}"
+}
+
+
+function print_item
+{
+    #===============================================================================
+    #          NAME:  print_item
+    #   DESCRIPTION:
+    #         USAGE:  print_item <suite> <test>
+    #       RETURNS:
+    #===============================================================================
+
+    typeset TEST_SUITE="${1}"
+    typeset TEST_NAME="${2}"
+
+
+    #
+    # Get the latest details of this test from the lists
+    #
+
+    typeset TEST_STATUS_NEW=$( echo "${TEST_STATUS}"  | grep "^${TEST_SUITE}:${TEST_NAME}:" | cut -d: -f4)
+    typeset TEST_RUNTIME_NEW=$(echo "${TEST_RUNTIME}" | grep "^${TEST_SUITE}:${TEST_NAME}:" | cut -d: -f3)
+    typeset TEST_OUTPUT_NEW=$( echo "${TEST_OUTPUT}"  | grep "^${TEST_SUITE}:${TEST_NAME}:" | cut -d: -f3-)
+
+
+    #
+    # Get the position of this test in the list
+    #
+
+    typeset TEST_YPOS=$(echo "${TEST_STATUS}" | grep -n "${TEST_SUITE}:${TEST_NAME}:" | cut -d: -f1)
+    let TEST_POS="TEST_YPOS + 9 + ${TEST_RUNNER_TOP_MARGIN}"
+
+
+    #
+    # Determine space/percentage weighting to apply to the columns
+    #
+
+    let TEST_RUNNER_WIDTH="$(terminal_get_screen_width) - (TEST_RUNNER_LEFT_MARGIN + TEST_RUNNER_RIGHT_MARGIN)"
+    TEST_RUNNER_HEIGHT=$(terminal_get_screen_height)
+
+    typeset TEST_COLS_WIDTHS="${TEST_RUNNER_SUITE_WEIGHT} ${TEST_RUNNER_NAME_WEIGHT} ${TEST_RUNNER_STATUS_WEIGHT} ${TEST_RUNNER_TIME_WEIGHT}"
+    typeset TEST_VALS="$(basename ${TEST_SUITE}) ${TEST_NAME} $(convert_to_external_status ${TEST_STATUS_NEW}) ${TEST_RUNTIME_NEW}"
+
+    ui_print_table_row "${TEST_COLS_WIDTHS}"        \
+                       "${TEST_VALS}"               \
+                       "${TEST_RUNNER_LEFT_MARGIN}" \
+                       "${TEST_POS}"                \
+                       "${TEST_RUNNER_WIDTH}"
+}
+
+
+function on_status_change
+{
+    #===============================================================================
+    #          NAME:  on_status_change
+    #   DESCRIPTION:
+    #         USAGE:  on_status_change <suite> <test> <stage> <status>
+    #       RETURNS:
+    #===============================================================================
+
+    typeset TEST_SUITE="${1}"
+    typeset TEST_NAME="${2}"
+    typeset TEST_STAGE="${3}"
+    typeset TEST_STATUS_NEW="${4}"
+
+    if [ -z "${TEST_NAME}" ] || [ -z "${TEST_STAGE}" ] || [ -z "${TEST_SUITE}" ] ; then
+
+        return 0
+
+    fi
+
+
+    #
+    # Convert the ab unit status format into the internal format used by
+    # this test runner
+    #
+
+    typeset TEST_LAST_STAGE=$(echo "${TEST_STATUS}" | grep "^${TEST_SUITE}:${TEST_NAME}:" | cut -d":" -f3)
+    typeset -i TEST_STATUS_CURRENT=$(echo "${TEST_STATUS}" | grep "^${TEST_SUITE}:${TEST_NAME}:" | cut -d":" -f4-)
+    typeset -i TEST_STATUS_UPDATED=$(convert_to_internal_status "${TEST_STATUS_NEW}" "${TEST_STAGE}")
+
+    #
+    # Exit if it was not the latest status event for the actual test
+    #
+
+    if [ "${TEST_STATUS_UPDATED}" -le "${TEST_STATUS_CURRENT}" ] ; then
+
+        return 0
+
+    elif [ "${TEST_LAST_STAGE}" == "${TEST_STAGE}" ] ; then
+
+        case "${TEST_STATUS_CURRENT}" in
+    
+            ${TEST_RUNNER_STATUS_INIT} | ${TEST_RUNNER_STATUS_STARTING} ) return 0
+                                                                          ;;
+
+        esac
+
+    elif [ "${TEST_STAGE}" == "load_test" ] ; then
+
+        return 0
+
+    fi
+
+    #
+    # Update the status with the internal format
+    #
+
+    TEST_STATUS=$(echo "${TEST_STATUS}" | sed "s|${TEST_SUITE}:${TEST_NAME}:.*$|${TEST_SUITE}:${TEST_NAME}:${TEST_STAGE}:${TEST_STATUS_UPDATED}|g")
+
+    typeset TEST_ALL_STATUS=$(echo "${TEST_STATUS}" | stream_split ":" 4 | sort)     # Gets the status of all tests
+    typeset TEST_MAX_STATUS=$(echo "${TEST_ALL_STATUS}" | stream_keep_trailing 1)    # Get the highest status so far
+    typeset TEST_MIN_STATUS=$(echo "${TEST_ALL_STATUS}" | stream_keep_leading  1)    # Get the lowest status so far
+
+    typeset TESTS_PERCENTAGE=100
+
+    #
+    # If there are tests that have not yet finished, find the number completed
+    # and the total number.  Get the percentage of tests finished
+    #
+
+    if [ "${TEST_MIN_STATUS}" -lt "${TEST_RUNNER_STATUS_PASSED}" ] ; then
+
+        typeset TESTS_COMPLETED=$(echo "${TEST_STATUS}" | awk -F: "\$4 >= ${TEST_RUNNER_STATUS_PASSED}" | stream_line_count)
+        typeset TOTAL_TESTS=$(string_line_count "${TEST_STATUS}")
+
+        typeset ONE_PERCENT=$(numeric_divide "100" "${TOTAL_TESTS}")
+        TESTS_PERCENTAGE=$(numeric_multiply "${ONE_PERCENT}" "${TESTS_COMPLETED}")
+        TESTS_PERCENTAGE=$(numeric_round "${TESTS_PERCENTAGE}" "0")
+
+        if [ "${TESTS_PERCENTAGE}" -gt 100 ] ; then
+
+            TESTS_PERCENTAGE=100
+
+        fi
+
+        if [ "${TEST_MAX_STATUS}" -eq "${TEST_RUNNER_STATUS_PASSED}" ] ; then
+
+            TEST_MAX_STATUS="${TEST_RUNNER_STATUS_RUNNING}"
+
+        fi
+
+    fi
+
+    STATUS_COLOR=$(get_status_color ${TEST_MAX_STATUS})
+    
+    #VALUE
+    #X
+    #Y
+    #WIDTH
+    #COLOR
+    ui_print_progress_bar "${TESTS_PERCENTAGE}"                                        \
+                          "${TEST_RUNNER_LEFT_MARGIN}"                                 \
+                          $(( ${TEST_RUNNER_TOP_MARGIN} + ${TEST_RUNNER_PROGRESS_Y} )) \
+                          "${TEST_RUNNER_WIDTH}"                                       \
+                          "${STATUS_COLOR}"
+
+    print_item "${TEST_SUITE}" "${TEST_NAME}"
+
+    print_summary_label
+
+    ui_paint
+
+    terminal_move $(terminal_get_screen_height) 0
+set +xv
+}
+
+
+function on_runtime_change
+{
+    #===============================================================================
+    #          NAME:  on_runtime_change
+    #   DESCRIPTION:
+    #         USAGE:  on_runtime_change <suite> <test> <stage> <runtime>
+    #       RETURNS:
+    #===============================================================================
+
+    typeset TEST_SUITE="${1}"
+    typeset TEST_NAME="${2}"
+    typeset TEST_STAGE="${3}"
+    typeset TEST_RUNTIME_NEW="${4}"
+
+    #
+    # Exit if it was not the runtime event for the actual test
+    # no need to display results of setup functions etc
+    #
+
+    if [ "${TEST_STAGE}" != "execute_test" ] ; then
+
+        return 0
+
+    fi
+
+    TEST_RUNTIME=$(echo "${TEST_RUNTIME}" | sed "s|${TEST_SUITE}:${TEST_NAME}:N/A|${TEST_SUITE}:${TEST_NAME}:${TEST_RUNTIME_NEW}|g")
+
+    print_item "${TEST_SUITE}" "${TEST_NAME}"
+
+    ui_paint
+}
+
+
+function initialize_ui
+{
+    #===============================================================================
+    #          NAME:  initialize_ui
+    #   DESCRIPTION:
+    #         USAGE:  initialize_ui
+    #       RETURNS:
+    #===============================================================================
+
+    #
+    # Set all enabled tests to UNSTARTED and Runtime info to N/A
+    #
+    TEST_STATUS=$(ab_unit_get_enabled_tests | sed "s|$|::${TEST_RUNNER_STATUS_UNSTARTED}|g")
+    TEST_RUNTIME=$(ab_unit_get_enabled_tests | sed "s|$|:N/A|g")
+
+    terminal_initscr
+
+    let TEST_RUNNER_WIDTH="$(terminal_get_screen_width) - (TEST_RUNNER_LEFT_MARGIN + TEST_RUNNER_RIGHT_MARGIN)"
+    TEST_RUNNER_HEIGHT=$(terminal_get_screen_height)
+
+    terminal_clear
+
+    #VALUE, X, Y, ,Left Align
+    ui_print_label "${TEST_RUNNER_TITLE_STRING}"                             \
+                   "${TEST_RUNNER_LEFT_MARGIN}"                              \
+                   $(( ${TEST_RUNNER_TOP_MARGIN} + ${TEST_RUNNER_TITLE_Y} )) \
+                   -1                                                        \
+                   left
+
+    #VALUE, X, Y, WIDTH, COLOR
+    ui_print_progress_bar "0"                                                          \
+                          "${TEST_RUNNER_LEFT_MARGIN}"                                 \
+                          $(( ${TEST_RUNNER_TOP_MARGIN} + ${TEST_RUNNER_PROGRESS_Y} )) \
+                          "${TEST_RUNNER_WIDTH}"                                       \
+                          "${TEST_RUNNER_COLOR_UNSTARTED}"
+
+
+    #
+    # Print table
+    #
+    
+    print_table_header
+
+    ab_unit_get_enabled_tests | while read line ; do
+
+        typeset TEST_SUITE=$(echo "${line}" | cut -d":" -f1)
+        typeset TEST_NAME=$( echo "${line}" | cut -d":" -f2)
+
+        print_item "${TEST_SUITE}" "${TEST_NAME}"
+
+    done
+
+    print_table_footer
+
+    print_summary_label
+
+    ui_paint
+}
+
+
+function destroy_ui
+{
+    #===============================================================================
+    #          NAME:  destroy_ui
+    #   DESCRIPTION:
+    #         USAGE:  destroy_ui
+    #       RETURNS:
+    #===============================================================================
+
+    terminal_move $(terminal_get_screen_height) 0           # Move cursor to last line on exit
+    ui_paint
+    terminal_endwin
+}

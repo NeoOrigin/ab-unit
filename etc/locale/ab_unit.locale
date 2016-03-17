@@ -1,0 +1,44 @@
+#!/bin/ksh
+#===============================================================================
+#
+#          FILE:  ab_unit.locale
+# 
+#         USAGE:  . ${AB_UNIT_HOME}/etc/locale/ab_unit.locale
+# 
+#   DESCRIPTION:  This script sets up the configuration variables required to
+#                 change the text displayed by the ab_unit test system
+# 
+#       OPTIONS:  ---
+#  REQUIREMENTS:  ---
+#          BUGS:  ---
+#         NOTES:  ---
+#        AUTHOR:  Philip Bowditch
+#       COMPANY:  
+#       VERSION:  1.0
+#       CREATED:  19/09/2008 18:36:49 GMT Daylight Time
+#      REVISION:  ---
+#
+#===============================================================================
+
+export AB_UNIT_UNSTARTED_STRING=${AB_UNIT_UNSTARTED_STRING:-"UNSTARTED"}     # Message string for unstarted events
+export AB_UNIT_STARTING_STRING=${AB_UNIT_STARTING_STRING:-"STARTING"}        # Message string for starting events
+export AB_UNIT_INIT_STRING=${AB_UNIT_INIT_STRING:-"INITIALIZING"}            # Message string for initializing events
+export AB_UNIT_RUNNING_STRING=${AB_UNIT_RUNNING_STRING:-"RUNNING"}           # Message string for running events
+export AB_UNIT_PASSED_STRING=${AB_UNIT_PASSED_STRING:-"PASSED"}              # Message string for passed events
+export AB_UNIT_IGNORED_STRING=${AB_UNIT_IGNORED_STRING:-"IGNORED"}           # Message string for ignored events
+export AB_UNIT_FAILED_STRING=${AB_UNIT_FAILED_STRING:-"FAILED"}              # Message string for failed events
+export AB_UNIT_ERRORED_STRING=${AB_UNIT_ERRORED_STRING:-"ERRORED"}           # Message string for errored events
+export AB_UNIT_UNKNOWN_STRING=${AB_UNIT_UNKNOWN_STRING:-"UNKNOWN"}           # Message string for unknown events
+
+export AB_UNIT_CMD_ID=${AB_UNIT_CMD_ID:-"COMMAND"}
+export AB_UNIT_PWD_ID=${AB_UNIT_PWD_ID:-"DIRECTORY"}
+export AB_UNIT_STATUS_ID=${AB_UNIT_STATUS_ID:-"STATUS"}
+export AB_UNIT_RUNTIME_ID=${AB_UNIT_RUNTIME_ID:-"RUNTIME"}
+export AB_UNIT_STDOUT_ID=${AB_UNIT_STDOUT_ID:-"STDOUT"}
+export AB_UNIT_STDERR_ID=${AB_UNIT_STDERR_ID:-"STDERR"}
+export AB_UNIT_RESULT_ID=${AB_UNIT_RESULT_ID:-"RESULT"}
+export AB_UNIT_START_ID=${AB_UNIT_START_ID:-"START"}
+export AB_UNIT_END_ID=${AB_UNIT_END_ID:-"END"}
+export AB_UNIT_SUITE_ID=${AB_UNIT_SUITE_ID:-"SUITE"}
+export AB_UNIT_TEST_ID=${AB_UNIT_TEST_ID:-"TEST"}
+export AB_UNIT_STAGE_ID=${AB_UNIT_STAGE_ID:-"STAGE"}

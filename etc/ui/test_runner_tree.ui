@@ -1,0 +1,683 @@
+#!/bin/ksh
+#===============================================================================
+#
+#          FILE:  test_runner_tree.ui
+# 
+#         USAGE:  ./test_runner_tree.ui
+# 
+#   DESCRIPTION:  
+# 
+#       OPTIONS:  ---
+#  REQUIREMENTS:  ---
+#          BUGS:  ---
+#         NOTES:  ---
+#        AUTHOR:  Philip Bowditch
+#       COMPANY:  
+#       VERSION:  1.0
+#       CREATED:  19/09/2008 18:36:49 GMT Daylight Time
+#      REVISION:  ---
+#==============================================================================
+
+#---  INCLUDES  ----------------------------------------------------------------
+#   DESCRIPTION: Defines the external scripts used by this script
+#-------------------------------------------------------------------------------
+
+if [ -z "${AB_UNIT_HOME}" ] ; then
+
+    echo "ERROR: AB_UNIT_HOME environment variable is not set" >&2
+    exit 1
+
+fi
+
+if [ ! -e "${AB_UNIT_HOME}" ] ; then
+
+    echo "ERROR: AB_UNIT_HOME environment variable points to a directory that does not exist" >&2
+    exit 2
+
+fi
+
+if [[ ! -d "${AB_UNIT_HOME}" && ! -L "${AB_UNIT_HOME}" ]] ; then
+
+    echo "ERROR: AB_UNIT_HOME environment variable is not a valid directory" >&2
+    exit 3
+
+fi
+
+. "${AB_UNIT_HOME}/etc/test_runner_tree.cfg"
+. "${AB_UNIT_HOME}/etc/locale/test_runner_tree.locale"
+
+
+#---  GLOBALS   ----------------------------------------------------------------
+#   DESCRIPTION:  Global variables used by this script
+#-------------------------------------------------------------------------------
+
+TEST_STATUS=""                      # Holds status of running jobs
+TEST_STDERR=""                      # Holds stderr messages to display
+TEST_STDOUT=""                      # Holds stdout messages to display
+TEST_TREE=""                        # The actual display for the tree
+TEST_TREE_POS=""                    # Retains the parent nodes of the test e.g. suite_name:test:0 1 5 7
+
+
+#-- FUNCTIONS ------------------------------------------------------------------
+# Function definitions for external use
+#-------------------------------------------------------------------------------
+
+function print_summary_label
+{
+        #===============================================================================
+        #          NAME:  print_summary_label
+        #   DESCRIPTION:  Prints summary test information
+        #         USAGE:  print_summary_label <x-coordinate> <y-coordinate>
+        #       RETURNS:
+        #===============================================================================
+
+        typeset TEST_X="${1}"
+        typeset TEST_Y="${2}"
+
+        let TEST_RUNNER_WIDTH="$(terminal_get_screen_width) - (TEST_RUNNER_LEFT_MARGIN + TEST_RUNNER_RIGHT_MARGIN)"
+        let TEST_RUNNER_HEIGHT="$(terminal_get_screen_height) - (TEST_RUNNER_TOP_MARGIN + TEST_RUNNER_BOTTOM_MARGIN)"
+
+        #
+        # Get counts for all statuses
+        #
+
+        typeset TESTS_UNSTARTED=$(echo "${TEST_STATUS}" | grep ":${TEST_RUNNER_STATUS_UNSTARTED}$" | stream_line_count)
+        typeset TESTS_STARTING=$( echo "${TEST_STATUS}" | grep ":${TEST_RUNNER_STATUS_STARTING}$"  | stream_line_count)
+        typeset TESTS_INITIAL=$(  echo "${TEST_STATUS}" | grep ":${TEST_RUNNER_STATUS_INIT}$"      | stream_line_count)
+        typeset TESTS_RUNNING=$(  echo "${TEST_STATUS}" | grep ":${TEST_RUNNER_STATUS_RUNNING}$"   | stream_line_count)
+        typeset TESTS_PASSED=$(   echo "${TEST_STATUS}" | grep ":${TEST_RUNNER_STATUS_PASSED}$"    | stream_line_count)
+        typeset TESTS_IGNORED=$(  echo "${TEST_STATUS}" | grep ":${TEST_RUNNER_STATUS_IGNORED}$"   | stream_line_count)
+        typeset TESTS_FAILED=$(   echo "${TEST_STATUS}" | grep ":${TEST_RUNNER_STATUS_FAILED}$"    | stream_line_count)
+        typeset TESTS_ERRORED=$(  echo "${TEST_STATUS}" | grep ":${TEST_RUNNER_STATUS_ERRORED}$"   | stream_line_count)
+
+        typeset TOTAL_TESTS=$(ab_unit_get_registered_tests | stream_line_count)
+
+        (( TESTS_UNSTARTED = TESTS_UNSTARTED + ${TESTS_STARTING:-0} ))
+        (( TESTS_RUNNING   = TESTS_RUNNING   + ${TESTS_INITIAL:-0} ))
+
+        #
+        # Print status results
+        #
+
+        typeset TEST_LABEL="${AB_UNIT_UNSTARTED_STRING}: ${TESTS_UNSTARTED:-0}/${TOTAL_TESTS}\t${AB_UNIT_RUNNING_STRING}: ${TESTS_RUNNING:-0}/${TOTAL_TESTS}\t${AB_UNIT_PASSED_STRING}: ${TESTS_PASSED:-0}/${TOTAL_TESTS}\t${AB_UNIT_IGNORED_STRING}: ${TESTS_IGNORED:-0}/${TOTAL_TESTS}\t${AB_UNIT_FAILED_STRING}: ${TESTS_FAILED:-0}/${TOTAL_TESTS}\t${AB_UNIT_ERRORED_STRING}: ${TESTS_ERRORED:-0}/${TOTAL_TESTS}"
+
+        ui_print_label "${TEST_LABEL}"               \
+                       "${TEST_RUNNER_LEFT_MARGIN}"  \
+                       "${TEST_RUNNER_HEIGHT}"       \
+                       -1                            \
+                       left
+}
+
+function print_table_header
+{
+    #===============================================================================
+    #          NAME:  print_table_header
+    #   DESCRIPTION:  Prints the table header row
+    #         USAGE:  print_table_header
+    #       RETURNS:  NONE
+    #===============================================================================
+
+    let TEST_RUNNER_WIDTH="$(terminal_get_screen_width) - (TEST_RUNNER_LEFT_MARGIN + TEST_RUNNER_RIGHT_MARGIN)"
+    let TEST_RUNNER_HEIGHT="$(terminal_get_screen_height) - (TEST_RUNNER_TOP_MARGIN + TEST_RUNNER_BOTTOM_MARGIN)"
+
+
+    #
+    # Determine the output content to display, or none or both
+    # Default text to display as the name of the test taking up all of the table (100% weighting)
+    # if there is an output column then add it accordingly next
+    #
+
+    typeset TEST_TEXT="TEST_NAME"
+    typeset TEST_WEIGHT="100"
+
+    case "${TEST_RUNNER_COLUMN}" in
+
+        stderr ) TEST_TEXT="${TEST_TEXT} STD_ERR"
+                 TEST_WEIGHT="${TEST_RUNNER_NAME_WEIGHT} ${TEST_RUNNER_STDERR_WEIGHT}"
+                 ;;
+        stdout ) TEST_TEXT="${TEST_TEXT} STD_OUT"
+                 TEST_WEIGHT="${TEST_RUNNER_NAME_WEIGHT} ${TEST_RUNNER_STDERR_WEIGHT}"
+                 ;;
+        both   ) TEST_TEXT="${TEST_TEXT} STD_ERR / STD_OUT"
+                 TEST_WEIGHT="${TEST_RUNNER_NAME_WEIGHT} ${TEST_RUNNER_STDERR_WEIGHT}"
+                 ;;
+        none   ) ;;
+
+    esac
+
+    #Table Weights, Coloumn Names, X, Y, Width
+    ui_print_table_header "${TEST_WEIGHT}"                                          \
+                          "${TEST_TEXT}"                                            \
+                          "${TEST_RUNNER_LEFT_MARGIN}"                              \
+                          $(( ${TEST_RUNNER_TOP_MARGIN} + ${TEST_RUNNER_TABLE_Y} )) \
+                          "${TEST_RUNNER_WIDTH}"
+}
+
+function print_table_footer
+{
+    #===============================================================================
+    #          NAME:  print_table_footer
+    #   DESCRIPTION:  Prints the table footer row
+    #         USAGE:  print_table_footer
+    #       RETURNS:  NONE
+    #===============================================================================
+
+    let TEST_RUNNER_WIDTH="$(terminal_get_screen_width) - (TEST_RUNNER_LEFT_MARGIN + TEST_RUNNER_RIGHT_MARGIN)"
+    let TEST_RUNNER_HEIGHT="$(terminal_get_screen_height) - (TEST_RUNNER_TOP_MARGIN + TEST_RUNNER_BOTTOM_MARGIN)"
+
+    typeset TOTAL_TESTS=$(string_line_count "${TEST_TREE}")
+
+    #X, Y, WIDTH
+    ui_print_line "${TEST_RUNNER_LEFT_MARGIN}"                                 \
+                  $(( ${TEST_RUNNER_TOP_MARGIN} + ${TEST_RUNNER_HEIGHT} - 3 )) \
+                  "${TEST_RUNNER_WIDTH}"
+}
+
+function on_status_change
+{
+    #===============================================================================
+    #          NAME:  on_status_change
+    #   DESCRIPTION:
+    #         USAGE:  on_status_change <suite> <test> <stage> <status>
+    #       RETURNS:
+    #===============================================================================
+
+    typeset TEST_SUITE="${1}"
+    typeset TEST_NAME="${2}"
+    typeset TEST_STAGE="${3}"
+    typeset TEST_STATUS_NEW="${4}"
+
+    if [ -z "${TEST_NAME}" ] || [ -z "${TEST_STAGE}" ] || [ -z "${TEST_SUITE}" ] ; then
+
+        return 0
+
+    fi
+
+
+    #
+    # Convert the ab unit status format into the internal format used by
+    # this test runner
+    #
+
+    typeset TEST_LAST_STAGE=$(echo "${TEST_STATUS}" | grep "^${TEST_SUITE}:${TEST_NAME}:" | cut -d":" -f3)
+    typeset -i TEST_STATUS_CURRENT=$(echo "${TEST_STATUS}" | grep "^${TEST_SUITE}:${TEST_NAME}:" | cut -d":" -f4-)
+    typeset -i TEST_STATUS_UPDATED=$(convert_to_internal_status "${TEST_STATUS_NEW}" "${TEST_STAGE}")
+
+    #
+    # Exit if it was not the latest status event for the actual test
+    #
+
+    if [ "${TEST_STATUS_UPDATED}" -le "${TEST_STATUS_CURRENT}" ] ; then
+
+        return 0
+
+    elif [ "${TEST_LAST_STAGE}" == "${TEST_STAGE}" ] ; then
+
+        case "${TEST_STATUS_CURRENT}" in
+
+            "${TEST_RUNNER_STATUS_INIT}" | "${TEST_RUNNER_STATUS_STARTING}" ) return 0
+                                                                              ;;
+
+        esac
+
+    elif [ "${TEST_STAGE}" == "load_test" ] || [ "${TEST_STAGE}" == "end_run_event" ] || [ "${TEST_STAGE}" == "end_test_event" ] || [ "${TEST_STAGE}" == "end_suite_event" ] ; then
+
+        return 0
+
+    fi
+
+    #
+    # Update the status with the internal format
+    #
+
+    TEST_STATUS=$(echo "${TEST_STATUS}" | sed "s|${TEST_SUITE}:${TEST_NAME}:.*$|${TEST_SUITE}:${TEST_NAME}:${TEST_STAGE}:${TEST_STATUS_UPDATED}|g")
+
+    typeset TEST_ALL_STATUS=$(echo "${TEST_STATUS}" | stream_split ":" 4 | sort)    # Gets the status of all tests
+    typeset TEST_MAX_STATUS=$(echo "${TEST_ALL_STATUS}" | stream_keep_trailing 1)   # Get the highest status so far
+    typeset TEST_MIN_STATUS=$(echo "${TEST_ALL_STATUS}" | stream_keep_leading  1)   # Get the lowest status so far
+
+    typeset TESTS_PERCENTAGE=100
+
+    #
+    # If there are tests that have not yet finished, find the number completed
+    # and the total number.  Get the percentage of tests finished
+    #
+
+    if [ "${TEST_MIN_STATUS}" -lt "${TEST_RUNNER_STATUS_PASSED}" ] ; then
+
+        typeset TESTS_COMPLETED=$(echo "${TEST_STATUS}" | awk -F: "\$4 >= ${TEST_RUNNER_STATUS_PASSED}" | stream_line_count)
+        typeset TOTAL_TESTS=$(string_line_count "${TEST_STATUS}")
+
+        typeset ONE_PERCENT=$(numeric_divide "100" "${TOTAL_TESTS}")
+        TESTS_PERCENTAGE=$(numeric_multiply "${ONE_PERCENT}" "${TESTS_COMPLETED}")
+        TESTS_PERCENTAGE=$(numeric_round "${TESTS_PERCENTAGE}" "0")
+
+        if [ "${TESTS_PERCENTAGE}" -gt 100 ] ; then
+
+            TESTS_PERCENTAGE=100
+
+        fi
+
+        if [ "${TEST_MAX_STATUS}" -eq "${TEST_RUNNER_STATUS_PASSED}" ] ; then
+
+            TEST_MAX_STATUS="${TEST_RUNNER_STATUS_RUNNING}"
+
+        fi
+
+    fi
+
+
+    #VALUE
+    #X
+    #Y
+    #WIDTH
+    #COLOR
+    ui_print_progress_bar "${TESTS_PERCENTAGE}"                                        \
+                          "${TEST_RUNNER_LEFT_MARGIN}"                                 \
+                          $(( ${TEST_RUNNER_TOP_MARGIN} + ${TEST_RUNNER_PROGRESS_Y} )) \
+                          "${TEST_RUNNER_WIDTH}"                                       \
+                          "$(get_status_color ${TEST_MAX_STATUS})"
+
+    print_tree_item "${TEST_SUITE}" \
+                    "${TEST_NAME}"  \
+                    "${TEST_STATUS_UPDATED}"
+
+    print_summary_label
+
+    terminal_move $(terminal_get_screen_height) 0
+
+    ui_paint
+}
+
+function print_tree_item
+{
+    #===============================================================================
+    #          NAME:  print_tree_item
+    #   DESCRIPTION:
+    #         USAGE:  print_tree_item <suite> <test> <status>
+    #       RETURNS:
+    #===============================================================================
+
+    typeset TEST_SUITE="${1}"
+    typeset TEST_NAME="${2}"
+    typeset TEST_STATUS="${3}"
+    typeset TEST_COLOR="$(get_status_color ${TEST_STATUS})"
+
+
+    #
+    # Get the display row id's to actual test position mappings
+    #
+
+    typeset TEST_ROWS=$(echo "${TEST_TREE_POS}" | grep "^${TEST_SUITE}:${TEST_NAME}:" | cut -d: -f3-)
+    typeset TEST_LED_X=0
+    typeset i=1
+
+    for ITEM in ${TEST_ROWS} ; do
+
+        typeset TEST_PARENT_STATUS=$(echo "${TEST_TREE_STATUS}" | grep "^${ITEM}:" | cut -d: -f2)
+
+        case "${TEST_RUNNER_LED_ALIGN}" in
+
+            left   ) (( TEST_LED_X = TEST_RUNNER_LEFT_MARGIN + 2 ))
+                     ;;
+            center ) set -A TEST_PARENT_POS $(echo "${TEST_TREE_POS}" | awk "/:${ITEM}$| ${ITEM}$"/)
+                     let PAD_AMT="i * 2"
+                     (( TEST_LED_X = TEST_RUNNER_LEFT_MARGIN + PAD_AMT ))
+                     ;;
+            right  ) ;;
+            *      ) ;;
+
+        esac
+
+        if [ "${TEST_STATUS}" -gt "${TEST_PARENT_STATUS}" ] ; then
+
+            ui_print_pixel "${TEST_COLOR} ${TERMINAL_NORMAL}" \
+                           "${TEST_LED_X}"                    \
+                           $(( ${TEST_RUNNER_TOP_MARGIN} + ${TEST_RUNNER_TABLE_Y} + 1 + ${ITEM} ))
+
+            TEST_TREE_STATUS=$(echo "${TEST_TREE_STATUS}" | sed "s|${ITEM}:.*|${ITEM}:${TEST_STATUS}|g")
+
+        fi
+
+
+        (( i += 1 ))
+
+    done
+
+    terminal_move $(terminal_get_screen_height) 0
+
+    ui_paint
+}
+
+
+function on_output_change
+{
+    #===============================================================================
+    #          NAME:  on_output_change
+    #   DESCRIPTION:
+    #         USAGE:  on_output_change <suite> <test> <stage> <output>
+    #       RETURNS:
+    #===============================================================================
+
+    typeset TEST_SUITE="${1}"
+    typeset TEST_NAME="${2}"
+    typeset TEST_STAGE="${3}"
+    typeset TEST_OUTPUT_NEW="${4}"
+
+    case "${TEST_RUNNER_COLUMN}" in
+
+        stdout | both ) TEST_STDOUT="${TEST_STDOUT}${TEST_SUITE} ${TEST_NAME} ${TEST_OUTPUT_NEW}\n"
+
+                        print_text_panel
+
+                        ;;
+        *             ) ;;
+
+    esac
+}
+
+function on_stderr_change
+{
+    #===============================================================================
+    #          NAME:  on_stderr_change
+    #   DESCRIPTION:
+    #         USAGE:  on_stderr_change <suite> <test> <stage> <stderr>
+    #       RETURNS:
+    #===============================================================================
+
+    typeset TEST_SUITE="${1}"
+    typeset TEST_NAME="${2}"
+    typeset TEST_STAGE="${3}"
+    typeset TEST_OUTPUT_NEW="${4}"
+
+    case "${TEST_RUNNER_COLUMN}" in
+
+        stderr | both ) TEST_STDERR="${TEST_STDERR}${TEST_SUITE} ${TEST_NAME} ${TEST_OUTPUT_NEW}\n"
+
+                        print_text_panel
+                        ;;
+        *             ) ;;
+    esac
+}
+
+function initialize_ui
+{
+    #===============================================================================
+    #          NAME:  initialize_ui
+    #   DESCRIPTION:
+    #         USAGE:  initialize_ui
+    #       RETURNS:
+    #===============================================================================
+
+    typeset PREV_TEST_SUITE=""
+    typeset TEMP_IDX=""
+    typeset TEMP_IDX_LIST=""
+
+    #
+    # If user has specified they are only interested in one output stream
+    # then override any settings of merging the stream together
+    #
+    case "${TEST_RUNNER_COLUMN}" in
+
+        stderr | stdout ) export AB_UNIT_SPLIT_OUTPUT="true"
+                          ;;
+
+    esac
+
+    ENABLED_TESTS=$(ab_unit_get_enabled_tests)
+    
+    #
+    # Go through all enabled tests, obtaining their suite and name
+    # if this is a new suite ensure a new parent node is added else
+    # add a child node to the parent for each test
+    #
+    for line in ${ENABLED_TESTS} ; do
+
+        typeset TEST_SUITE=$(echo "${line}" | stream_split ":" 1)
+        typeset TEST_NAME=$( echo "${line}" | stream_split ":" 2)
+
+        typeset TEST_SUITE_2=$(basename "${TEST_SUITE}")
+
+        if [ "X${TEST_SUITE_2}" != "X${PREV_TEST_SUITE}" ] ; then
+
+            add_node "${TEST_SUITE_2}" 1
+            TEMP_IDX=${?}
+
+            PREV_TEST_SUITE="${TEST_SUITE_2}"
+
+        fi
+
+        add_node "${TEST_NAME}" 2
+        TEMP_IDX_LIST="${TEMP_IDX} ${?}"
+
+        TEST_TREE_POS="${TEST_TREE_POS}${TEST_SUITE}:${TEST_NAME}:${TEMP_IDX_LIST}\n"
+
+    done
+
+    #
+    #
+    #
+    TEST_TREE_POS=$(echo "${TEST_TREE_POS}" | grep ".")
+    TEST_TREE_STATUS=$(echo "${TEST_TREE_POS}" | sed "s|.*|${TEST_RUNNER_STATUS_UNSTARTED}|g" | grep -n ".")
+    TEST_STATUS=$(ab_unit_get_enabled_tests | sed "s|$|::${TEST_RUNNER_STATUS_UNSTARTED}|g")
+
+    #
+    # 1. Initialise the screen drawing library
+    # 2. Obtain screen dimensions
+    # 3. Clear existing contents of screen
+    # 4. Print the title label
+    # 5. Print an empty progress bar
+    # 6. Print the header for the table
+    #
+
+    terminal_initscr
+
+    let TEST_RUNNER_WIDTH="$(terminal_get_screen_width) - (TEST_RUNNER_LEFT_MARGIN + TEST_RUNNER_RIGHT_MARGIN)"
+    let TEST_RUNNER_HEIGHT="$(terminal_get_screen_height) - (TEST_RUNNER_TOP_MARGIN + TEST_RUNNER_BOTTOM_MARGIN)"
+
+    terminal_clear
+
+    #VALUE, X, Y, ,LEFT ALIGN
+    ui_print_label "${TEST_RUNNER_TITLE_STRING}"                        \
+                   "${TEST_RUNNER_LEFT_MARGIN}"                         \
+                   $(( TEST_RUNNER_TOP_MARGIN + TEST_RUNNER_TITLE_Y ))  \
+                   -1                                                   \
+                   left
+
+    #VALUE, X, Y, WIDTH, COLOR
+    ui_print_progress_bar "0"                                                          \
+                          "${TEST_RUNNER_LEFT_MARGIN}"                                 \
+                          $(( ${TEST_RUNNER_TOP_MARGIN} + ${TEST_RUNNER_PROGRESS_Y} )) \
+                          "${TEST_RUNNER_WIDTH}"                                       \
+                          "${TEST_RUNNER_COLOR_UNSTARTED}"
+
+    print_table_header
+
+    typeset TOTAL_TESTS=$(string_line_count "${TEST_TREE}")
+
+    # , X, Y, WIDTH
+    ui_print_text_area "${TEST_TREE}"                                                \
+                       "${TEST_RUNNER_LEFT_MARGIN}"                                  \
+                       $(( ${TEST_RUNNER_TOP_MARGIN} + ${TEST_RUNNER_TABLE_Y} + 3 )) \
+                       "${TEST_RUNNER_WIDTH}"                                        \
+                       $(( ${TEST_RUNNER_HEIGHT} - ${TEST_RUNNER_TABLE_Y} - 5 ))     \
+                       N 
+
+    ui_print_box       "${TEST_RUNNER_LEFT_MARGIN}"                                  \
+                       $(( ${TEST_RUNNER_TOP_MARGIN} + ${TEST_RUNNER_TABLE_Y} + 2 )) \
+                       $(( ${TEST_RUNNER_WIDTH} - 1 ))                               \
+                       $(( ${TEST_RUNNER_HEIGHT} - ${TEST_RUNNER_TABLE_Y} - 5 ))
+
+    print_text_panel
+
+    print_table_footer
+
+    print_summary_label
+
+    terminal_move $(terminal_get_screen_height) 0
+
+    ui_paint
+}
+
+
+function print_text_panel
+{
+    #===============================================================================
+    #          NAME:  print_text_panel
+    #   DESCRIPTION:
+    #         USAGE:  print_text_panel
+    #       RETURNS:
+    #===============================================================================
+
+    #
+    # Update the application height and width incase of resizing
+    #
+
+    let TEST_RUNNER_WIDTH="$(terminal_get_screen_width) - (TEST_RUNNER_LEFT_MARGIN + TEST_RUNNER_RIGHT_MARGIN)"
+    let TEST_RUNNER_HEIGHT="$(terminal_get_screen_height) - (TEST_RUNNER_TOP_MARGIN + TEST_RUNNER_BOTTOM_MARGIN)"
+
+
+    #
+    # Turn the width into a percentage value, from this determine how much to allocate according
+    # to weights specified for columns. Incase this wasn't an actual fit then ensure decimal figures
+    # are rounded out
+    #
+
+    typeset ONE_PERCENT=$(numeric_divide "${TEST_RUNNER_WIDTH}" "100")
+
+    typeset UI_STDERR_PERCENT=$(numeric_multiply "${ONE_PERCENT}" "${TEST_RUNNER_STDERR_WEIGHT}")
+    typeset UI_TREE_PERCENT=$(numeric_multiply "${ONE_PERCENT}" "${TEST_RUNNER_NAME_WEIGHT}")
+
+    UI_STDERR_PERCENT=$(numeric_round "${UI_STDERR_PERCENT:-0}" "0")
+    UI_TREE_PERCENT=$(numeric_round "${UI_TREE_PERCENT:-0}" "0")
+
+
+    #
+    # Determine which text to display in the text panel, stdout, stderr or both
+    #
+
+    typeset TEST_TEXT=""
+    case "${TEST_RUNNER_COLUMN}" in
+
+        stderr ) TEST_TEXT="${TEST_STDERR}"
+                 ;;
+        stdout ) TEST_TEXT="${TEST_STDOUT}"
+                 ;;
+        both   ) TEST_TEXT="${TEST_STDERR}\n${TEST_STDOUT}"
+                 ;;
+        none   ) ;;
+
+    esac
+
+
+    typeset TOTAL_TESTS=$(string_line_count "${TEST_TREE}")
+
+
+    typeset PREV_SUITE=""
+    typeset PREV_TEST=""
+    typeset TEST_OUTPUT=""
+
+    echo "${TEST_TEXT}" | grep "." | stream_keep_leading ${TEST_RUNNER_HEIGHT} | cat -n | stream_ltrim | sort -k 2,3 | stream_split "   " 2- | while read line ; do
+
+        typeset TEST_SUITE=$(echo "${line}" | stream_split " " 1) 
+        typeset TEST_NAME=$( echo "${line}" | stream_split " " 2)
+        typeset TEST_LINE=$( echo "${line}" | stream_split " " 3-)
+
+        if [ "${TEST_SUITE}" != "${PREV_SUITE}" ] ; then
+
+            TEST_OUTPUT="${TEST_OUTPUT}\nSUITE : ${TEST_SUITE}\n"
+
+            PREV_SUITE="${TEST_SUITE}"
+
+        fi
+
+        if [ "${TEST_NAME}" != "${PREV_TEST}" ] ; then
+
+            TEST_OUTPUT="${TEST_OUTPUT}  TEST : ${TEST_NAME}\n\n"
+
+            PREV_TEST="${TEST_NAME}"
+
+        fi
+
+        TEST_OUTPUT="${TEST_OUTPUT}${TEST_LINE}\n"
+
+    done
+
+    if [ -n "${TEST_OUTPUT}" ] ; then
+
+        ui_print_text_area "${TEST_OUTPUT}"                                              \
+                           $(( ${UI_TREE_PERCENT} + ${TEST_RUNNER_LEFT_MARGIN} ))        \
+                           $(( ${TEST_RUNNER_TOP_MARGIN} + ${TEST_RUNNER_TABLE_Y} + 2 )) \
+                           "${UI_STDERR_PERCENT}"                                        \
+                           $(( ${TEST_RUNNER_HEIGHT} - ${TEST_RUNNER_TABLE_Y} - 5 ))     \
+                           Y
+    fi
+}
+
+function add_node
+{
+    #===============================================================================
+    #          NAME:  add_node
+    #   DESCRIPTION:  The string/label to add
+    #         USAGE:  add_node <label> <depth>
+    #       RETURNS:  The number of nodes in the tree
+    #===============================================================================
+
+    typeset TEST_LABEL="${1}"
+    typeset TEST_LEVEL="${2}"
+
+    #
+    # Left pad the label so it appears to be indented to a certain level
+    #
+
+    typeset TEST_LABEL_SIZE=$(string_char_count "${TEST_LABEL}")
+    typeset PAD_AMT=$(( (${TEST_LEVEL} * 2) + ${TEST_LABEL_SIZE}))
+    typeset PADDED_INDENT="$(printf %${PAD_AMT}s ${TEST_LABEL})"
+
+    #
+    # Add the node with a leading space from the border
+    #
+
+    TEST_TREE="${TEST_TREE}| ${PADDED_INDENT}\n"
+
+    return $(string_line_count "${TEST_TREE}")
+}
+
+function remove_node
+{
+    #===============================================================================
+    #          NAME:  remove_node
+    #   DESCRIPTION:  Removes a node from the tree
+    #         USAGE:  remove_node <suite> <name>
+    #       RETURNS:  The number of nodes in the tree
+    #===============================================================================
+
+    typeset TEST_SUITE="${1}"
+    typeset TEST_NAME="${2}"
+
+    typeset NODE_PARENTS=$(echo "${TEST_TREE_POS}" | grep "^${TEST_SUITE}:${TEST_NAME}:" | cut -d":" -f3-)
+
+    typeset i=0
+    for ITEM in ${NODE_PARENTS} ; do
+    
+        # to do, using parents recursively call itself to delete nodes  
+        (( i += 1 ))
+
+    done
+
+    return $(string_line_count "${TEST_TREE}")
+}
+
+function destroy_ui
+{
+    #===============================================================================
+    #          NAME:  destroy_ui
+    #   DESCRIPTION:  Called on application exit, destroys the interface
+    #         USAGE:  destroy_ui
+    #       RETURNS:  NONE
+    #===============================================================================
+
+    terminal_move $(terminal_get_screen_height) 0       # Move cursor to last line on exit
+    ui_paint
+    terminal_endwin
+}
