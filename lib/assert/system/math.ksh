@@ -3,7 +3,7 @@
 #
 #          FILE:  math.ksh
 #
-#         USAGE:  . ${AB_UNIT_HOME}/lib/assert/math.ksh
+#         USAGE:  . ${AB_UNIT_HOME}/lib/assert/system/math.ksh
 #
 #   DESCRIPTION:
 #
