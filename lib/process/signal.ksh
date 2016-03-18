@@ -12,7 +12,7 @@
 #          BUGS:  ---
 #         NOTES:  ---
 #        AUTHOR:  Philip Bowditch
-#       COMPANY:  
+#       COMPANY:  Neo Origin Limited
 #       VERSION:  1.0
 #       CREATED:  13/09/2008 11:50:00 GMT Daylight Time
 #      REVISION:  ---
@@ -54,10 +54,10 @@ export SIGNAL_SEGMENTATION_VIOLATION=11     # SEGV  - Segmentation violation, in
 export SIGNAL_PIPE_NO_READER=13             # PIPE  - Pipeline without a reader
 export SIGNAL_TIMER_ALARM=14                # ALRM  -
 export SIGNAL_TERMINATE=15                  # TERM  - Terminate the process
-export SIGNAL_USER1=30,10,16                # USR1  - User defined
-export SIGNAL_USER2=31,12,17                # USR2  - User defined
-export SIGNAL_CHILD=20,17,18                # CHLD  - Child process stopped or terminated
-export SIGNAL_CONTINUE=19,18,25             # CONT  - Continue if stopped
-export SIGNAL_DEBUG=-                       # DEBUG - KSH - Executed before each statement in a script
-export SIGNAL_ERROR                         # ERR   - Executed whenever a command produces a non 0 return code
-export SIGNAL_KEYBOARD                      # KEYBD - 
+export SIGNAL_USER1="30,10,16"              # USR1  - User defined
+export SIGNAL_USER2="31,12,17"              # USR2  - User defined
+export SIGNAL_CHILD="20,17,18"              # CHLD  - Child process stopped or terminated
+export SIGNAL_CONTINUE="19,18,25"           # CONT  - Continue if stopped
+export SIGNAL_DEBUG="-"                     # DEBUG - KSH - Executed before each statement in a script
+export SIGNAL_ERROR=""                      # ERR   - Executed whenever a command produces a non 0 return code
+export SIGNAL_KEYBOARD=""                   # KEYBD - 
