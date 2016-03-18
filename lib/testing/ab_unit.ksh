@@ -356,7 +356,7 @@ function ab_unit_generate_messages
         READ_HAS_DATA=$?
         if [ $READ_HAS_DATA -ne 11 ] ; then
             #OUTPUT_MESSAGE="${OUTPUT_MESSAGE}${AB_UNIT_SUITE_ID} : ${TEST_SUITE} : ${AB_UNIT_TEST_ID} : ${TEST_NAME} : ${AB_UNIT_STAGE_ID} : ${TEST_STAGE} : ${TEST_MESSAGE}$(date +%H%M%S)${ab_unit_line}\n"
-            OUTPUT_MESSAGE="${OUTPUT_MESSAGE}${AB_UNIT_SUITE_ID} : ${TEST_SUITE} : ${AB_UNIT_TEST_ID} : ${TEST_NAME} : ${AB_UNIT_STAGE_ID} : ${TEST_STAGE} : ${TEST_MESSAGE}${ab_unit_line}\n"
+            OUTPUT_MESSAGE="${OUTPUT_MESSAGE}${AB_UNIT_SUITE_ID} : ${TEST_SUITE} : ${AB_UNIT_TEST_ID} : ${TEST_NAME} : ${AB_UNIT_STAGE_ID} : ${TEST_STAGE} : ${TEST_MESSAGE}${ab_unit_line}"
         fi
 
         #echo $(date +%H%M%S)":${1}:${2}:${3}:READ:$READ_HAS_DATA" >> /tmp/phils_messages.dat
