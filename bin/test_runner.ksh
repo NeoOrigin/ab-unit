@@ -38,8 +38,6 @@
 #      REVISION:  ---
 #==============================================================================
 
-trap "" INT QUIT KILL TERM USR1
-
 #---  INCLUDES  ----------------------------------------------------------------
 #   DESCRIPTION: Defines the external scripts used by this script
 #-------------------------------------------------------------------------------
@@ -779,6 +777,8 @@ parse_arguments "${@}"
 
 initialize_ui
 
+trap "" INT QUIT KILL TERM USR1
+
 #
 # Un the tests, capturing its output so we can use event handlers to update the
 # interface on change
@@ -790,11 +790,11 @@ ab_unit_run_tests | while read line ; do
 
 done
 
+trap - INT QUIT KILL TERM USR1
+
 destroy_ui
 
 unset TEST_RUNNER_RUNNING
 unset TEST_RUNNER_VERSION
-
-trap - INT QUIT KILL TERM USR1
 
 exit 0
