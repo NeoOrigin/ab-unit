@@ -13,7 +13,7 @@
 #          BUGS:  ---
 #         NOTES:  ---
 #        AUTHOR:  Philip Bowditch
-#       COMPANY:  Neo Origin Lmited
+#       COMPANY:  Neo Origin Limited
 #       VERSION:  1.0
 #       CREATED:  01/10/2008 21:14:58 GMT Daylight Time
 #      REVISION:  ---
