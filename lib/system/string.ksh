@@ -12,7 +12,7 @@
 #          BUGS:  ---
 #         NOTES:  ---
 #        AUTHOR:  Philip Bowditch
-#       COMPANY:  
+#       COMPANY:  Neo Origin Limited
 #       VERSION:  1.0
 #       CREATED:  01/10/2008 21:14:58 GMT Daylight Time
 #      REVISION:  ---
@@ -59,7 +59,7 @@ function string_char_count
     #       RETURNS:  The return code of the operation
     #===============================================================================
 
-    echo "${#1}"
+    printf "%s\n" "${#1}"
 }
 
 
@@ -72,7 +72,7 @@ function string_line_count
     #       RETURNS:  The return code of the operation
     #===============================================================================
 
-    echo "${1}" | stream_line_count
+    printf "%s\n" "${1}" | stream_line_count
 }
 
 
@@ -85,7 +85,7 @@ function string_trim
     #       RETURNS:  The return code of the operation
     #===============================================================================
 
-    echo "${1}" | stream_trim
+    printf "%s\n" "${1}" | stream_trim
 }
 
 
@@ -98,7 +98,7 @@ function string_ltrim
     #       RETURNS:  The return code of the operation
     #===============================================================================
 
-    echo "${1}" | stream_ltrim
+    printf "%s\n" "${1}" | stream_ltrim
 }
 
 
@@ -111,7 +111,7 @@ function string_rtrim
     #       RETURNS:  The return code of the operation
     #===============================================================================
 
-    echo "${1}" | stream_rtrim
+    printf "%s\n" "${1}" | stream_rtrim
 }
 
 
@@ -138,11 +138,11 @@ function string_left_justify
 
     if [ "${UTIL_CHAR_COUNT}" -ge "${UTIL_SIZE}" ] ; then
 
-        echo "${UTIL_VAL}"
+        printf "%s\n" "${UTIL_VAL}"
 
     else
 
-        printf "%-${UTIL_SIZE}s" "${UTIL_VAL}"
+        printf "%-${UTIL_SIZE}s\n" "${UTIL_VAL}"
 
     fi
 }
@@ -171,11 +171,11 @@ function string_right_justify
 
     if [ "${UTIL_CHAR_COUNT}" -ge "${UTIL_SIZE}" ] ; then
 
-        echo "${UTIL_VAL}"
+        printf "%s\n" "${UTIL_VAL}"
 
     else
 
-        printf "%${UTIL_SIZE}s" "${UTIL_VAL}"
+        printf "%${UTIL_SIZE}s\n" "${UTIL_VAL}"
 
     fi
 }
@@ -192,7 +192,7 @@ function string_to_lowercase
 
     typeset -l UTIL_LOWER="${1}"
 
-    echo "${UTIL_LOWER}"
+    printf "%s\n" "${UTIL_LOWER}"
 }
 
 
@@ -207,7 +207,7 @@ function string_to_uppercase
 
     typeset -u UTIL_UPPER="${1}"
 
-    echo "${UTIL_UPPER}"
+    printf "%s\n" "${UTIL_UPPER}"
 }
 
 
@@ -232,13 +232,13 @@ function string_left_truncate
 
     if [ "${UTIL_CHAR_COUNT}" -le "${UTIL_SIZE}" ] ; then
 
-        echo "${UTIL_VAL}"
+        printf "%s\n" "${UTIL_VAL}"
 
     else
 
         typeset -L${UTIL_SIZE} UTIL_END_VAL="${UTIL_VAL}"
 
-        echo "${UTIL_END_VAL}"
+        printf "%s\n" "${UTIL_END_VAL}"
 
     fi
 }
@@ -265,13 +265,13 @@ function string_right_truncate
 
     if [ "${UTIL_CHAR_COUNT}" -le "${UTIL_SIZE}" ] ; then
 
-        echo "${UTIL_VAL}"
+        printf "%s\n" "${UTIL_VAL}"
 
     else
 
         typeset -R${UTIL_SIZE} UTIL_END_VAL="${UTIL_VAL}"
 
-        echo "${UTIL_END_VAL}"
+        printf "%s\n" "${UTIL_END_VAL}"
 
     fi
 }
@@ -289,7 +289,7 @@ function string_word_wrap
     typeset UTIL_TEXT="${1}"
     typeset UTIL_WIDTH="${2}"
 
-    echo "${UTIL_TEXT}" | stream_word_wrap "${UTIL_WIDTH}"
+    printf "%s\n" "${UTIL_TEXT}" | stream_word_wrap "${UTIL_WIDTH}"
 }
 
 
@@ -305,7 +305,7 @@ function string_char_wrap
     typeset UTIL_TEXT="${1}"
     typeset UTIL_WIDTH="${2}"
 
-    echo "${UTIL_TEXT}" | stream_line_wrap "${UTIL_WIDTH}"
+    printf "%s\n" "${UTIL_TEXT}" | stream_line_wrap "${UTIL_WIDTH}"
 }
 
 
@@ -322,7 +322,7 @@ function string_substring
     typeset UTIL_START="${2}"
     typeset UTIL_LENGTH="${3}"
 
-    echo "${UTIL_TEXT}" | stream_substring "${UTIL_START}" "${UTIL_LENGTH}"
+    printf "%s\n" "${UTIL_TEXT}" | stream_substring "${UTIL_START}" "${UTIL_LENGTH}"
 }
 
 
@@ -340,7 +340,7 @@ function string_split
     typeset UTIL_DELIM="${2}"
     typeset UTIL_FIELDS="${3}"
 
-    echo "${UTIL_TEXT}" | stream_split "${UTIL_DELIM}" "${UTIL_FIELDS}"
+    printf "%s\n" "${UTIL_TEXT}" | stream_split "${UTIL_DELIM}" "${UTIL_FIELDS}"
 }
 
 
@@ -354,8 +354,8 @@ function string_compare
     #                 <text2>, 1 if <text> is greater than <text2>
     #===============================================================================
 
-    typeset UTIL_TEXT=$( echo "${1}" | sed 's|"|\\"|g')
-    typeset UTIL_TEXT2=$(echo "${2}" | sed 's|"|\\"|g')
+    typeset UTIL_TEXT=$( printf "%s\n" "${1}" | sed 's|"|\\"|g')
+    typeset UTIL_TEXT2=$(printf "%s\n" "${2}" | sed 's|"|\\"|g')
 
     #
     # Use inbuilt awk comparison operators
@@ -481,9 +481,9 @@ function string_index
     typeset UTIL_TEXT="${1}"
     typeset UTIL_SEARCH="${2}"
 
-    typeset UTIL_RESULT=$(echo "${UTIL_TEXT}" | stream_index "${UTIL_SEARCH}" | stream_split "," 2-)
+    typeset UTIL_RESULT=$(printf "%s\n" "${UTIL_TEXT}" | stream_index "${UTIL_SEARCH}" | stream_split "," 2-)
 
-    echo "${UTIL_RESULT:--1}"
+    printf "%s\n" "${UTIL_RESULT:--1}"
 }
 
 function string_to_hex
@@ -495,7 +495,7 @@ function string_to_hex
     #       RETURNS:  The result of the operation
     #===============================================================================
 
-    echo -e "${1}\c" | stream_to_hex
+    printf "%s" "${1}" | stream_to_hex
 }
 
 
@@ -508,22 +508,36 @@ function string_to_octal
     #       RETURNS:  The result of the operation
     #===============================================================================
 
-    echo -e "${1}\c" | stream_to_octal
+    printf "%s" "${1}" | stream_to_octal
 }
 
 
 function string_replace
 {
     #===============================================================================
-        #          NAME:  string_replace
-        #   DESCRIPTION:  Replaces a string within the text
-        #         USAGE:  string_replace <text> <search_str> <replace_str>
-        #       RETURNS:  The result of the operation
-        #===============================================================================
+    #          NAME:  string_replace
+    #   DESCRIPTION:  Replaces a string within the text
+    #         USAGE:  string_replace <text> <search_str> <replace_str>
+    #       RETURNS:  The result of the operation
+    #===============================================================================
 
     typeset UTIL_TEXT="${1}"
     typeset UTIL_TEXT1="${2}"
     typeset UTIL_TEXT2="${3}"
 
-    echo "${UTIL_TEXT}" | stream_replace "${UTIL_TEXT1}" "${UTIL_TEXT2}"
+    printf "%s\n" "${UTIL_TEXT}" | stream_replace "${UTIL_TEXT1}" "${UTIL_TEXT2}"
+}
+
+function string_reverse_words
+{
+    #===============================================================================
+    #          NAME:  string_reverse_words
+    #   DESCRIPTION:  Reverses the words in a string
+    #         USAGE:  string_reverse_words <text>
+    #       RETURNS:  The result of the operation
+    #===============================================================================
+
+    typeset UTIL_TEXT="${1}"
+
+    printf "%s\n" "${UTIL_TEXT}" | stream_reverse_words
 }
