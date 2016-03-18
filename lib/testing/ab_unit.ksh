@@ -366,8 +366,8 @@ function ab_unit_generate_messages
         #
         if [[ "X${TEST_SYNC}" != "XY" ]] ; then
         
-            printf "%s" "${OUTPUT_MESSAGE}"
-            printf "%s" "${OUTPUT_MESSAGE}" | logger_log_stream "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}"
+            printf "%s\n" "${OUTPUT_MESSAGE}"
+            printf "%s\n" "${OUTPUT_MESSAGE}" | logger_log_stream "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}"
 
             OUTPUT_MESSAGE=""
 
@@ -430,8 +430,8 @@ function ab_unit_generate_messages
                 lock_add_metadata "${AB_UNIT_UI_LOCK}" TEST   "${TEST_NAME}"
                 lock_add_metadata "${AB_UNIT_UI_LOCK}" STAGE  "${TEST_STAGE}"
 
-                printf "%s" "${OUTPUT_MESSAGE}"
-                printf "%s" "${OUTPUT_MESSAGE}" | logger_log_stream "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}"
+                printf "%s\n" "${OUTPUT_MESSAGE}"
+                printf "%s\n" "${OUTPUT_MESSAGE}" | logger_log_stream "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}"
 
                 lock_exit "${AB_UNIT_UI_LOCK}" "Y"
 
@@ -461,8 +461,8 @@ function ab_unit_generate_messages
 
         if [[ "X${TEST_SYNC}" != "XY" ]] ; then
 
-            printf "%s" "${OUTPUT_MESSAGE}"
-            printf "%s" "${OUTPUT_MESSAGE}" | logger_log_stream "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}"
+            printf "%s\n" "${OUTPUT_MESSAGE}"
+            printf "%s\n" "${OUTPUT_MESSAGE}" | logger_log_stream "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}"
 
         else
 
@@ -473,8 +473,8 @@ function ab_unit_generate_messages
                 lock_add_metadata "${AB_UNIT_UI_LOCK}" TEST   "${TEST_NAME}"
                 lock_add_metadata "${AB_UNIT_UI_LOCK}" STAGE  "${TEST_STAGE}"
 
-                printf "%s" "${OUTPUT_MESSAGE}"
-                printf "%s" "${OUTPUT_MESSAGE}" | logger_log_stream "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}"
+                printf "%s\n" "${OUTPUT_MESSAGE}"
+                printf "%s\n" "${OUTPUT_MESSAGE}" | logger_log_stream "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}"
 
             lock_exit "${AB_UNIT_UI_LOCK}" "Y"
 
