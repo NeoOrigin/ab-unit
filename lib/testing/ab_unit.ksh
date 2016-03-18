@@ -12,7 +12,7 @@
 #          BUGS:  ---
 #         NOTES:  ---
 #        AUTHOR:  Philip Bowditch
-#       COMPANY:  
+#       COMPANY:  Neo Origin Limited
 #       VERSION:  1.0
 #       CREATED:  12/09/2008 09:04:14 GMT Daylight Time
 #      REVISION:  ---
@@ -163,7 +163,7 @@ function ab_unit_register_test
     TEST_SUITE="${1}"
     TEST_NAME="${2}"
 
-    AB_UNIT_REGISTERED_TESTS=$(echo -e "${AB_UNIT_REGISTERED_TESTS}\n${AB_UNIT_ENABLE_FLAG}:${TEST_SUITE}:${TEST_NAME}" | grep "." | sort -u)
+    AB_UNIT_REGISTERED_TESTS=$(printf "%s\n%s:%s:%s\n" "${AB_UNIT_REGISTERED_TESTS}" "${AB_UNIT_ENABLE_FLAG}" "${TEST_SUITE}" "${TEST_NAME}" | grep "." | sort -u)
 }
 
 function ab_unit_unregister_test
@@ -178,7 +178,7 @@ function ab_unit_unregister_test
     TEST_SUITE="${1}"
     TEST_NAME="${2}"
 
-    AB_UNIT_REGISTERED_TESTS=$(echo "${AB_UNIT_REGISTERED_TESTS}" | grep -v "^.:${TEST_SUITE}:${TEST_NAME}$")
+    AB_UNIT_REGISTERED_TESTS=$(printf "%s\n" "${AB_UNIT_REGISTERED_TESTS}" | grep -v "^.:${TEST_SUITE}:${TEST_NAME}$")
 }
 
 function ab_unit_register_suite
@@ -216,11 +216,11 @@ function ab_unit_unregister_suite
 
     for line in ${REGISTERED_TESTS} ; do
 
-        TEST_SUITE=$(echo "${line}" | stream_split ":" 2)
+        TEST_SUITE=$(printf "%s\n" "${line}" | stream_split ":" 2)
 
         if [ "X${TEST_SUITE}" == "X${TEST_SUITE_TO_FIND}" ] ; then
 
-            TEST_NAME=$(echo "${line}" | stream_split ":" 3)
+            TEST_NAME=$(printf "%s\n" "${line}" | stream_split ":" 3)
 
             ab_unit_unregister_test "${TEST_SUITE}" "${TEST_NAME}"
 
@@ -238,7 +238,7 @@ function ab_unit_get_registered_tests
     #       RETURNS:  NONE
     #===============================================================================
 
-    echo "${AB_UNIT_REGISTERED_TESTS}"
+    printf "%s\n" "${AB_UNIT_REGISTERED_TESTS}"
 }
 
 function ab_unit_enable_test
@@ -253,7 +253,7 @@ function ab_unit_enable_test
     TEST_SUITE="${1}"
     TEST_NAME="${2}"
 
-    AB_UNIT_REGISTERED_TESTS=$(echo "${AB_UNIT_REGISTERED_TESTS}" | sed "s|.:${TEST_SUITE}:${TEST_NAME}|${AB_UNIT_ENABLE_FLAG}:${TEST_SUITE}:${TEST_NAME}|g")
+    AB_UNIT_REGISTERED_TESTS=$(printf "%s\n" "${AB_UNIT_REGISTERED_TESTS}" | sed "s|^.:${TEST_SUITE}:${TEST_NAME}$|${AB_UNIT_ENABLE_FLAG}:${TEST_SUITE}:${TEST_NAME}|g")
 }
 
 function ab_unit_disable_test
@@ -268,7 +268,7 @@ function ab_unit_disable_test
     TEST_SUITE="${1}"
     TEST_NAME="${2}"
 
-    AB_UNIT_REGISTERED_TESTS=$(echo "${AB_UNIT_REGISTERED_TESTS}" | sed "s|.:${TEST_SUITE}:${TEST_NAME}|${AB_UNIT_DISABLE_FLAG}:${TEST_SUITE}:${TEST_NAME}|g")
+    AB_UNIT_REGISTERED_TESTS=$(printf "%s\n" "${AB_UNIT_REGISTERED_TESTS}" | sed "s|^.:${TEST_SUITE}:${TEST_NAME}$|${AB_UNIT_DISABLE_FLAG}:${TEST_SUITE}:${TEST_NAME}|g")
 }
 
 function ab_unit_get_enabled_tests
@@ -280,7 +280,7 @@ function ab_unit_get_enabled_tests
     #       RETURNS:  NONE
     #===============================================================================
 
-    echo "${AB_UNIT_REGISTERED_TESTS}" | grep "^${AB_UNIT_ENABLE_FLAG}:" | stream_split ":" "2-"
+    printf "%s\n" "${AB_UNIT_REGISTERED_TESTS}" | grep "^${AB_UNIT_ENABLE_FLAG}:" | stream_split ":" "2-"
 }
 
 function ab_unit_get_disabled_tests
@@ -292,7 +292,7 @@ function ab_unit_get_disabled_tests
     #       RETURNS:  NONE
     #===============================================================================
 
-    echo "${AB_UNIT_REGISTERED_TESTS}" | grep "^${AB_UNIT_DISABLE_FLAG}:" | stream_split ":" "2-"
+    printf "%s\n" "${AB_UNIT_REGISTERED_TESTS}" | grep "^${AB_UNIT_DISABLE_FLAG}:" | stream_split ":" "2-"
 }
 
 function ab_unit_generate_message
@@ -310,7 +310,7 @@ function ab_unit_generate_message
     TEST_MESSAGE="${4}"
     TEST_DETAIL="${5}"
 
-    echo "${TEST_DETAIL}" | ab_unit_generate_messages "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}" N "${TEST_MESSAGE}"
+    printf "%s\n" "${TEST_DETAIL}" | ab_unit_generate_messages "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}" N "${TEST_MESSAGE}"
 }
 
 function ab_unit_generate_messages
@@ -351,7 +351,7 @@ function ab_unit_generate_messages
 
     #echo $(date +%H%M%S)":${1}:${2}:${3}:STARTING:$RANDOM_TIME" >> /tmp/phils_messages.dat
 
-    while read_timeout ${RANDOM_TIME} ab_unit_line ; do
+    while read_timeout ${RANDOM_TIME:-1} ab_unit_line ; do
 
         READ_HAS_DATA=$?
         if [ $READ_HAS_DATA -ne 11 ] ; then
@@ -366,8 +366,8 @@ function ab_unit_generate_messages
         #
         if [[ "X${TEST_SYNC}" != "XY" ]] ; then
         
-            echo -e "${OUTPUT_MESSAGE}\c"
-            echo -e "${OUTPUT_MESSAGE}\c" | logger_log_stream "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}"
+            printf "%s" "${OUTPUT_MESSAGE}"
+            printf "%s" "${OUTPUT_MESSAGE}" | logger_log_stream "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}"
 
             OUTPUT_MESSAGE=""
 
@@ -375,7 +375,7 @@ function ab_unit_generate_messages
 
         else
 
-            (( LOCK_BUFFER_SIZE += 1 ))
+            LOCK_BUFFER_SIZE=$(( LOCK_BUFFER_SIZE + 1 ))
 
             LOCK_RESULT=1
             NOW_TIME=${SECONDS}
@@ -393,7 +393,7 @@ function ab_unit_generate_messages
             #
             # If we have exceeded the buffer size begin trying to obtain a lock
             #
-            if [[ $READ_HAS_DATA -ne 11 || ${LOCK_BUFFER_SIZE} -ge "${AB_UNIT_MESSAGE_BUFFER}" ]] ; then
+            if [[ "${READ_HAS_DATA}" -ne 11 || "${LOCK_BUFFER_SIZE}" -ge "${AB_UNIT_MESSAGE_BUFFER}" ]] ; then
 
                 #echo $(date +%H%M%S)":${1}:${2}:${3}:LOCK_BUFFER:$LOCK_BUFFER_SIZE" >> /tmp/phils_messages.dat
 
@@ -408,7 +408,7 @@ function ab_unit_generate_messages
             # If no lock is already obtained and we have exceeded maximum time allowed then
             # wait until lock is obtained
             #
-            if [[ ${LOCK_RESULT} -ne 0 && ( $READ_HAS_DATA -ne 11 || ${DIFF_TIME} -ge ${RANDOM_TIME} ) ]] ; then
+            if [[ "${LOCK_RESULT}" -ne 0 && ( "${READ_HAS_DATA}" -ne 11 || "${DIFF_TIME}" -ge "${RANDOM_TIME}" ) ]] ; then
 
                 #echo $(date +%H%M%S)":${1}:${2}:${3}:LOCK_ENTER:$RANDOM_TIME" >> /tmp/phils_messages.dat
 
@@ -423,15 +423,15 @@ function ab_unit_generate_messages
             # If a lock has been obtained output item to log and ui and remove the lock
             # reset the next appropriate time to look for updates
             #
-            if [[ ${LOCK_RESULT} -eq 0 ]] ; then
+            if [[ "${LOCK_RESULT}" -eq 0 ]] ; then
 
                 lock_add_metadata "${AB_UNIT_UI_LOCK}" CALLER "ab_unit_generate_messages main"
                 lock_add_metadata "${AB_UNIT_UI_LOCK}" SUITE  "${TEST_SUITE}"
                 lock_add_metadata "${AB_UNIT_UI_LOCK}" TEST   "${TEST_NAME}"
                 lock_add_metadata "${AB_UNIT_UI_LOCK}" STAGE  "${TEST_STAGE}"
 
-                echo -e "${OUTPUT_MESSAGE}\c"
-                echo -e "${OUTPUT_MESSAGE}\c" | logger_log_stream "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}"
+                printf "%s" "${OUTPUT_MESSAGE}"
+                printf "%s" "${OUTPUT_MESSAGE}" | logger_log_stream "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}"
 
                 lock_exit "${AB_UNIT_UI_LOCK}" "Y"
 
@@ -461,8 +461,8 @@ function ab_unit_generate_messages
 
         if [[ "X${TEST_SYNC}" != "XY" ]] ; then
 
-            echo -e "${OUTPUT_MESSAGE}\c"
-            echo -e "${OUTPUT_MESSAGE}\c" | logger_log_stream "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}"
+            printf "%s" "${OUTPUT_MESSAGE}"
+            printf "%s" "${OUTPUT_MESSAGE}" | logger_log_stream "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}"
 
         else
 
@@ -473,8 +473,8 @@ function ab_unit_generate_messages
                 lock_add_metadata "${AB_UNIT_UI_LOCK}" TEST   "${TEST_NAME}"
                 lock_add_metadata "${AB_UNIT_UI_LOCK}" STAGE  "${TEST_STAGE}"
 
-                echo -e "${OUTPUT_MESSAGE}\c"
-                echo -e "${OUTPUT_MESSAGE}\c" | logger_log_stream "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}"
+                printf "%s" "${OUTPUT_MESSAGE}"
+                printf "%s" "${OUTPUT_MESSAGE}" | logger_log_stream "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}"
 
             lock_exit "${AB_UNIT_UI_LOCK}" "Y"
 
@@ -628,7 +628,7 @@ function ab_unit_run_command
 
     TEST_SUITE="${1}"
     TEST_NAME="${2}"
-    TEST_STAGE=$(echo "${3}" | sed 's| |_|g')
+    TEST_STAGE=$(printf "%s\n" "${3}" | sed 's| |_|g')
 
     shift 3
 
@@ -1028,8 +1028,8 @@ function ab_unit_run_suite
     # Create variables to hold the suite lock name and the suite specific file it uses to
     # share metadata with tests
     #
-    AB_UNIT_SUITE_LOCK=$(echo -e "${TEST_SUITE}.lock" | sed 's|/|_|g')
-    AB_UNIT_SUITE_META=$(echo -e "${TEST_SUITE}.meta" | sed 's|/|_|g')
+    AB_UNIT_SUITE_LOCK=$(printf "%s\n" "${TEST_SUITE}.lock" | sed 's|/|_|g')
+    AB_UNIT_SUITE_META=$(printf "%s\n" "${TEST_SUITE}.meta" | sed 's|/|_|g')
 
     #
     # Create the suite metadata file (implemented as a lock) this is used to allow
@@ -1111,7 +1111,7 @@ function ab_unit_run_event
 
         if [ -n "${TEST_EVENT}" ] ; then
 
-            ab_unit_run_command "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}" "${TEST_EVENT}" $@
+            ab_unit_run_command "${TEST_SUITE}" "${TEST_NAME}" "${TEST_STAGE}" "${TEST_EVENT}" "$@"
 
         fi
 
@@ -1155,7 +1155,7 @@ function ab_unit_run_tests
         
         for TEST_SUITE in ${TESTS_UNIQUE_SUITES}; do
 
-            TESTS_IN_SUITE=$(echo "${TESTS_TO_RUN}"  | grep "^${TEST_SUITE}:" | stream_split ":" 2-)
+            TESTS_IN_SUITE=$(printf "%s\n" "${TESTS_TO_RUN}" | grep "^${TEST_SUITE}:" | stream_split ":" 2-)
 
             ab_unit_run_suite "${TEST_SUITE}" ${TESTS_IN_SUITE} &
 
