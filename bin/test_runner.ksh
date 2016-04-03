@@ -38,8 +38,6 @@
 #      REVISION:  ---
 #==============================================================================
 
-trap "" INT QUIT KILL TERM USR1
-
 #---  INCLUDES  ----------------------------------------------------------------
 #   DESCRIPTION: Defines the external scripts used by this script
 #-------------------------------------------------------------------------------
@@ -113,20 +111,22 @@ function print_test_runner_usage
     #       RETURNS:  NONE
     #===============================================================================
 
-    printf "%s\n" "Usage: ${0} <options>+" >&2
-    printf "%s\n" "" >&2
-    printf "%s\n" "Where options is at least one or a combination of the following" >&2
-    printf "%s\n" "" >&2
-    printf "%s\n" "    ( +C | --enable_context    )                        - Turns on context sensitive matching"   >&2
-    printf "%s\n" "    ( -C | --disable_context   )                        - Turns off context sensitive matching"  >&2
-    printf "%s\n" "    ( +d | --include_directory ) <directory>            - A directory of test suites to run"     >&2
-    printf "%s\n" "    ( +s | --include_suite     ) <suite>                - A test suite to run"                   >&2
-    printf "%s\n" "    ( +t | --include_test      ) [<suite>] <testcase>   - A test case to run"                    >&2
-    printf "%s\n" "    ( -d | --exclude_directory ) <directory>            - A directory of test suites to exclude" >&2
-    printf "%s\n" "    ( -s | --exclude_suite     ) <suite>                - A test suite to exclude"               >&2
-    printf "%s\n" "    ( -t | --exclude_test      ) [<suite>] <testcase>   - A test case to exclude"                >&2
-    printf "%s\n" "    ( -h | --help | -? | ?     )                        - Displays this message"                 >&2
-    printf "%s\n" "    ( -v | --version           )                        - Displays the version number"           >&2
+    cat <<EOF
+Usage: ${0} <options>+
+
+    Where options is at least one or a combination of the following
+
+    ( +C | --enable_context    )                        - Turns on context sensitive matching
+    ( -C | --disable_context   )                        - Turns off context sensitive matching
+    ( +d | --include_directory ) <directory>            - A directory of test suites to run
+    ( +s | --include_suite     ) <suite>                - A test suite to run
+    ( +t | --include_test      ) [<suite>] <testcase>   - A test case to run
+    ( -d | --exclude_directory ) <directory>            - A directory of test suites to exclude
+    ( -s | --exclude_suite     ) <suite>                - A test suite to exclude
+    ( -t | --exclude_test      ) [<suite>] <testcase>   - A test case to exclude
+    ( -h | --help | -? | ?     )                        - Displays this message
+    ( -v | --version           )                        - Displays the version number
+EOF
 }
 
 function get_status_color
@@ -164,7 +164,7 @@ function get_status_color
         *                                ) ;;
 
     esac
-echo -e "${TEST_MAX_STATUS}:${TEST_BG_COLOR}" >> /tmp/phil.txt
+
     echo -e "${TEST_BG_COLOR}"
 }
 
@@ -179,7 +179,7 @@ function convert_to_internal_status
     #===============================================================================
 
     typeset TEST_STATUS_NEW="${1}"
-    typeset TEST_STAGE="${2}"
+    typeset -l TEST_STAGE="${2}"
 
     #
     # Take the status string as output from AB_UNIT and turn into an
@@ -585,7 +585,7 @@ function parse_arguments
     typeset SAVED_DIRECTORY=""
     typeset SAVED_SUITE=""
 
-    while [ ${#} -gt 0 ] ; do
+    while [ $# -gt 0 ] ; do
 
         typeset TEST_OPTION="${1}"
 
@@ -594,6 +594,8 @@ function parse_arguments
             \+C | \--enable_context    ) CONTEXT_SENSITIVE=true
                                          ;;
             \-C | \--disable_context   ) CONTEXT_SENSITIVE=false
+            
+                                         # Reset any saved context we may have built tup
                                          SAVED_DIRECTORY=""
                                          SAVED_SUITE=""
                                          ;;
@@ -602,22 +604,17 @@ function parse_arguments
 
                                          shift
 
-                                         if [ "${CONTEXT_SENSITIVE}" == true ] ; then
-
-                                             SAVED_DIRECTORY="${TEST_DIRECTORY}"
-
-                                         fi
+                                         # Remember last directory
+                                         [ "${CONTEXT_SENSITIVE}" == true ] && SAVED_DIRECTORY="${TEST_DIRECTORY}"
 
                                          TEST_SUITES=$(find "${TEST_DIRECTORY}" -name "${AB_UNIT_TEST_SUITE_REGX}" -a -type f)
                                          
                                          for TEST_SUITE in ${TEST_SUITES}; do
 
-                                             if [ "${CONTEXT_SENSITIVE}" == true ] ; then
+                                             # Remember last suite
+                                             [ "${CONTEXT_SENSITIVE}" == true ] && SAVED_SUITE="${TEST_SUITE}"
 
-                                                 SAVED_SUITE="${TEST_SUITE}"
-
-                                             fi
-
+                                             # Register the suite and call before and after hooks
                                              on_suite_register      "${TEST_SUITE}" &&
                                              ab_unit_register_suite "${TEST_SUITE}" &&
                                              on_suite_registered    "${TEST_SUITE}"
@@ -629,22 +626,17 @@ function parse_arguments
 
                                          shift
 
-                                         if [ "${CONTEXT_SENSITIVE}" == true ] ; then
-
-                                             SAVED_DIRECTORY="${TEST_DIRECTORY}"
-
-                                         fi
+                                         # Remember last directory
+                                         [ "${CONTEXT_SENSITIVE}" == true ] && SAVED_DIRECTORY="${TEST_DIRECTORY}"
 
                                          TEST_SUITES=$(find "${TEST_DIRECTORY}" -name "${AB_UNIT_TEST_SUITE_REGX}" -a -type f)
                                          
                                          for TEST_SUITE in ${TEST_SUITES} ; do
 
-                                             if [ "${CONTEXT_SENSITIVE}" == true ] ; then
+                                             # Remember last suite
+                                             [ "${CONTEXT_SENSITIVE}" == true ] && SAVED_SUITE="${TEST_SUITE}"
 
-                                                 SAVED_SUITE="${TEST_SUITE}"
-
-                                             fi
-
+                                             # Unregister the suite and call the before and after hooks
                                              on_suite_unregister      "${TEST_SUITE}" &&
                                              ab_unit_unregister_suite "${TEST_SUITE}" &&
                                              on_suite_unregistered    "${TEST_SUITE}"
@@ -656,16 +648,19 @@ function parse_arguments
 
                                          if [ "${CONTEXT_SENSITIVE}" == true ] ; then
 
-                                             if [ -n "${SAVED_DIRECTORY}" ] && [ -f "${SAVED_DIRECTORY}/${TEST_SUITE}" ] ; then
+                                             # Check where the suite can be found, might be in a common directory
+                                             if [[ -n "${SAVED_DIRECTORY}" && -f "${SAVED_DIRECTORY}/${TEST_SUITE}" ]] ; then
 
                                                  TEST_SUITE="${SAVED_DIRECTORY}/${TEST_SUITE}"
 
                                              fi
 
+                                             # Remember last suite
                                              SAVED_SUITE="${TEST_SUITE}"
 
                                          fi
 
+                                         # Register the suite and call the before and after hooks
                                          on_suite_register      "${TEST_SUITE}" &&
                                          ab_unit_register_suite "${TEST_SUITE}" &&
                                          on_suite_registered    "${TEST_SUITE}"
@@ -675,23 +670,27 @@ function parse_arguments
 
                                          if [ "${CONTEXT_SENSITIVE}" == true ] ; then
 
-                                             if [ -n "${SAVED_DIRECTORY}" ] && [ -f "${SAVED_DIRECTORY}/${TEST_SUITE}" ] ; then
+                                             # Check where the suite can be found, might be in a common directory
+                                             if [[ -n "${SAVED_DIRECTORY}" && -f "${SAVED_DIRECTORY}/${TEST_SUITE}" ]] ; then
 
                                                  TEST_SUITE="${SAVED_DIRECTORY}/${TEST_SUITE}"
 
                                              fi
 
+                                             # Remember last suite
                                              SAVED_SUITE="${TEST_SUITE}"
 
                                          fi
 
+                                         # Unregister the suite and call the before and after hooks
                                          on_suite_unregister      "${TEST_SUITE}" &&
                                          ab_unit_unregister_suite "${TEST_SUITE}" &&
                                          on_suite_unregistered    "${TEST_SUITE}"
                                          ;;
             \+t | \--include_test      ) typeset TEST_SUITE=""
 
-                                         if [ "${CONTEXT_SENSITIVE}" == true ] && [ -n "${SAVED_SUITE}" ] ; then
+                                         # Use the last suite if applicable else we are assuming a suite and test were passed
+                                         if [[ "${CONTEXT_SENSITIVE}" == true && -n "${SAVED_SUITE}" ]] ; then
 
                                              TEST_SUITE="${SAVED_SUITE}"
 
@@ -703,6 +702,7 @@ function parse_arguments
 
                                          fi
 
+                                         # Register the test and call the before and after hooks
                                          on_test_register      "${TEST_SUITE}" "${2}" &&
                                          ab_unit_register_test "${TEST_SUITE}" "${2}" &&
                                          on_test_registered    "${TEST_SUITE}" "${2}"
@@ -711,6 +711,7 @@ function parse_arguments
                                          ;;
             \-t | \--exclude_test      ) typeset TEST_SUITE=""
 
+                                         # Use the last suite if applicable else we are assuming a suite and test were passed
                                          if [ "${CONTEXT_SENSITIVE}" == true ] && [ -n "${SAVED_SUITE}" ]; then
 
                                              TEST_SUITE="${SAVED_SUITE}"
@@ -723,6 +724,7 @@ function parse_arguments
 
                                          fi
 
+                                         # Unregister the test and call the before and after hooks
                                          on_test_unregister      "${TEST_SUITE}" "${2}" &&
                                          ab_unit_unregister_test "${TEST_SUITE}" "${2}" &&
                                          on_test_unregistered    "${TEST_SUITE}" "${2}"
@@ -732,10 +734,10 @@ function parse_arguments
             \-h | \--help | \? | \-?   ) print_test_runner_usage
                                          exit 0
                                          ;;
-            \-v | \--version           ) echo -e "${0}: ${TEST_RUNNER_VERSION}"
+            \-v | \--version           ) printf "%s: %s\n" "${0}" "${TEST_RUNNER_VERSION}"
                                          exit 0
                                          ;;
-            *                          ) print_test_runner_usage
+            *                          ) print_test_runner_usage >&2
                                          exit 1
                                          ;;
 
@@ -775,6 +777,8 @@ parse_arguments "${@}"
 
 initialize_ui
 
+trap "" INT QUIT KILL TERM USR1
+
 #
 # Un the tests, capturing its output so we can use event handlers to update the
 # interface on change
@@ -786,11 +790,11 @@ ab_unit_run_tests | while read line ; do
 
 done
 
+trap - INT QUIT KILL TERM USR1
+
 destroy_ui
 
 unset TEST_RUNNER_RUNNING
 unset TEST_RUNNER_VERSION
-
-trap - INT QUIT KILL TERM USR1
 
 exit 0

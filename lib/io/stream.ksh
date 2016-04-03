@@ -12,7 +12,7 @@
 #          BUGS:  ---
 #         NOTES:  ---
 #        AUTHOR:  Philip Bowditch
-#       COMPANY:  
+#       COMPANY:  Neo Origin Limited
 #       VERSION:  1.0
 #       CREATED:  01/10/2008 21:14:58 GMT Daylight Time
 #      REVISION:  ---
@@ -233,13 +233,13 @@ function stream_drop_leading
     typeset -i i=0
     while read line ; do
 
-        if [ ${i} -ge ${UTIL_HEAD_NO} ] ; then
+        if [ ${i} -ge "${UTIL_HEAD_NO}" ] ; then
 
-            echo "${line}"
+            printf "%s\n" "${line}"
 
         fi
 
-        (( i += 1 ))
+        i=$(( i + 1 ))
 
     done
 }
@@ -262,13 +262,13 @@ function stream_drop_trailing
 
         UTIL_BUFFER="${UTIL_BUFFER}${line}\n"
 
-        (( i += 1 ))
+        i=$(( i + 1 ))
 
     done
 
-    if [ ${i} -gt ${UTIL_HEAD_NO} ] ; then
+    if [ ${i} -gt "${UTIL_HEAD_NO}" ] ; then
 
-        echo -e "${UTIL_BUFFER}\c" | head -$(( i - UTIL_HEAD_NO ))
+        printf "%s" "${UTIL_BUFFER}" | head -$(( i - UTIL_HEAD_NO ))
 
     fi
 
@@ -312,4 +312,29 @@ function stream_replace
     typeset UTIL_TEXT2="${2}"
 
     tr "${UTIL_TEXT1}" "${UTIL_TEXT2}"
+}
+
+function stream_reverse
+{
+    #===============================================================================
+    #          NAME:  stream_reverse
+    #   DESCRIPTION:  Reverses the lines on stdin
+    #         USAGE:  stream_reverse
+    #       RETURNS:  The result of the operation
+    #===============================================================================
+    
+    # tac is not cross platform
+    awk '{ a[ i++ ] = $0 } END { for ( j = i - 1; j >= 0; ) print a[ j-- ] }'
+}
+
+function stream_reverse_words
+{
+    #===============================================================================
+    #          NAME:  stream_reverse_words
+    #   DESCRIPTION:  Reverses the words on a given line of stdin
+    #         USAGE:  stream_reverse_words
+    #       RETURNS:  The result of the operation
+    #===============================================================================
+    
+    awk '{ for( i = NF; i > 0; --i ) printf "%s%s", $i, ( i > 1 ? OFS : ORS ) }'
 }

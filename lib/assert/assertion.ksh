@@ -13,7 +13,7 @@
 #          BUGS:  ---
 #         NOTES:  ---
 #        AUTHOR:  Philip Bowditch
-#       COMPANY:  
+#       COMPANY:  Neo Origin Limited
 #       VERSION:  1.0
 #       CREATED:  01/10/2008 21:14:58 GMT Daylight Time
 #      REVISION:  ---
@@ -28,7 +28,7 @@ function assert
     #===============================================================================
     #          NAME:  assert
     #   DESCRIPTION:  Base function to be used by all specialised assert methods
-    #         USAGE:  assert <function_name> <user_message> <default_message>
+    #         USAGE:  assert <function_name> [<user_message>] [<default_message>]
     #       RETURNS:  1
     #===============================================================================
 
@@ -37,22 +37,14 @@ function assert
     typeset DEFAULT_ERR="${3}"
 
     #
-    # If the user did not pass a message then use the inbuild default
-    # else use failed if nothing specified before outputing the message
+    # If the user did not pass a message then use the passed in default
+    # else use failed if nothing specified before outputting the message
     # to stderr and returning false
     #
 
-    if [ -z "${CUSTOM_ERR}" ] ; then
+    [ -z "${CUSTOM_ERR}" ] && CUSTOM_ERR="${DEFAULT_ERR}"
 
-        CUSTOM_ERR="${DEFAULT_ERR}"
-
-    fi
-
-    if [ -z "${CUSTOM_ERR}" ] ; then
-
-        CUSTOM_ERR="Failed"
-
-    fi
+    [ -z "${CUSTOM_ERR}" ] && CUSTOM_ERR="Failed"
 
     printf "%s: %s\n" "${NAMED_FUNCTION}" "${CUSTOM_ERR}" >&2
     return 1

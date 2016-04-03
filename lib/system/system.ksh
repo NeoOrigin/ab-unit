@@ -12,7 +12,7 @@
 #          BUGS:  ---
 #         NOTES:  ---
 #        AUTHOR:  Philip Bowditch
-#       COMPANY:  
+#       COMPANY:  Neo Origin Limited
 #       VERSION:  1.0
 #       CREATED:  12/09/2008 08:53:34 GMT Daylight Time
 #      REVISION:  ---
@@ -34,7 +34,7 @@ function system_get_functions
 
     typeset NAMES="$(declare -F 2>/dev/null || typeset +f 2>/dev/null)"
 
-    echo "${NAMES}" | sed 's/declare -f //' | sed 's/^\([^ ]*\)() .*$/\1/'
+    printf "%s\n" "${NAMES}" | sed 's/declare -f //' | sed 's/^\([^ ]*\)() .*$/\1/'
 }
 
 
@@ -185,4 +185,100 @@ function system_print
     #===============================================================================
 
     echo "${@}"
+}
+
+function system_hostname
+{
+    #===============================================================================
+    #          NAME:  system_hostname
+    #   DESCRIPTION:  Prints the hostname to standard output
+    #         USAGE:  system_hostname
+    #       RETURNS:
+    #===============================================================================
+    
+    uname --nodename
+}
+
+function system_kernelname
+{
+    #===============================================================================
+    #          NAME:  system_kernelname
+    #   DESCRIPTION:  Prints the kernel name to standard output
+    #         USAGE:  system_kernelname
+    #       RETURNS:
+    #===============================================================================
+    
+    uname --kernel-name
+}
+
+function system_osname
+{
+    #===============================================================================
+    #          NAME:  system_osname
+    #   DESCRIPTION:  Prints the operating system name to standard output
+    #         USAGE:  system_osname
+    #       RETURNS:
+    #===============================================================================
+    
+    uname --operating-system
+}
+
+function system_processor_type
+{
+    #===============================================================================
+    #          NAME:  system_processor_type
+    #   DESCRIPTION:  Prints the processor type to standard output
+    #         USAGE:  system_processor_type
+    #       RETURNS:
+    #===============================================================================
+    
+    uname --processor
+}
+
+function system_platform
+{
+    #===============================================================================
+    #          NAME:  system_platform
+    #   DESCRIPTION:  Prints the hardware platform to standard output
+    #         USAGE:  system_platform
+    #       RETURNS:
+    #===============================================================================
+    
+    uname --hardware-platform
+}
+
+function system_machinename
+{
+    #===============================================================================
+    #          NAME:  system_machinename
+    #   DESCRIPTION:  Prints the machine hardware name to standard output
+    #         USAGE:  system_machinename
+    #       RETURNS:
+    #===============================================================================
+    
+    uname --machine
+}
+
+function system_kernel_version
+{
+    #===============================================================================
+    #          NAME:  system_kernel_version
+    #   DESCRIPTION:  Prints the kernel version to standard output
+    #         USAGE:  system_kernel_version
+    #       RETURNS:
+    #===============================================================================
+    
+    uname --kernel-version
+}
+
+function system_kernel_release
+{
+    #===============================================================================
+    #          NAME:  system_kernel_release
+    #   DESCRIPTION:  Prints the kernel release to standard output
+    #         USAGE:  system_kernel_release
+    #       RETURNS:
+    #===============================================================================
+    
+    uname --kernel-release
 }

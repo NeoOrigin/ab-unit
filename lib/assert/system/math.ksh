@@ -3,7 +3,7 @@
 #
 #          FILE:  math.ksh
 #
-#         USAGE:  . ${AB_UNIT_HOME}/lib/assert/math.ksh
+#         USAGE:  . ${AB_UNIT_HOME}/lib/assert/system/math.ksh
 #
 #   DESCRIPTION:
 #
@@ -12,7 +12,7 @@
 #          BUGS:  ---
 #         NOTES:  ---
 #        AUTHOR:  Philip Bowditch
-#       COMPANY:  
+#       COMPANY:  Neo Origin Limited
 #       VERSION:  1.0
 #       CREATED:  01/10/2008 21:14:58 GMT Daylight Time
 #      REVISION:  ---
@@ -60,9 +60,9 @@ fi
 function assert_number_eq
 {
     #===============================================================================
-    #          NAME:  
+    #          NAME:  assert_number_eq
     #   DESCRIPTION:  
-    #         USAGE:  
+    #         USAGE:  assert_number_eq <num1> <num2> [<usermessage>]
     #       RETURNS:  
     #===============================================================================
 
@@ -74,9 +74,9 @@ function assert_number_eq
 function assert_number_ne
 {
     #===============================================================================
-    #          NAME:  
+    #          NAME:  assert_number_ne
     #   DESCRIPTION:  
-    #         USAGE:  
+    #         USAGE:  assert_number_ne <num1> <num2> [<usermessage>]
     #       RETURNS:  
     #===============================================================================
 
@@ -88,9 +88,9 @@ function assert_number_ne
 function assert_number_gt
 {
     #===============================================================================
-    #          NAME:  
+    #          NAME:  assert_number_gt
     #   DESCRIPTION:  
-    #         USAGE:  
+    #         USAGE:  assert_number_gt <num1> <num2> [<usermessage>]
     #       RETURNS:  
     #===============================================================================
 
@@ -102,9 +102,9 @@ function assert_number_gt
 function assert_number_le
 {
     #===============================================================================
-    #          NAME:  
+    #          NAME:  assert_number_le
     #   DESCRIPTION:  
-    #         USAGE:  
+    #         USAGE:  assert_number_le <num1> <num2> [<usermessage>]
     #       RETURNS:  
     #===============================================================================
 
@@ -116,9 +116,9 @@ function assert_number_le
 function assert_number_lt
 {
     #===============================================================================
-    #          NAME:  
+    #          NAME:  assert_number_lt
     #   DESCRIPTION:  
-    #         USAGE:  
+    #         USAGE:  assert_number_lt <num1> <num2> [<usermessage>]
     #       RETURNS:  
     #===============================================================================
 
@@ -130,9 +130,9 @@ function assert_number_lt
 function assert_number_ge
 {
     #===============================================================================
-    #          NAME:  
+    #          NAME:  assert_number_ge
     #   DESCRIPTION:  
-    #         USAGE:  
+    #         USAGE:  assert_number_ge <num1> <num2> [<usermessage>]
     #       RETURNS:  
     #===============================================================================
 
@@ -144,13 +144,83 @@ function assert_number_ge
 function assert_is_number
 {
     #===============================================================================
-    #          NAME:  
+    #          NAME:  assert_is_number
     #   DESCRIPTION:  
-    #         USAGE:  
+    #         USAGE:  assert_is_number <num> [<usermessage>]
     #       RETURNS:  
     #===============================================================================
 
     numeric_is_numeric "${1}" && return 0
 
     assert "assert_is_number" "${2}" "'${1}' is not a number"
+}
+
+function assert_is_not_number
+{
+    #===============================================================================
+    #          NAME:  assert_is_not_number
+    #   DESCRIPTION:  
+    #         USAGE:  assert_is_not_number <num> [<usermessage>]
+    #       RETURNS:  
+    #===============================================================================
+
+    assert_is_number "${1}" >/dev/null 2>&1 || return 0
+
+    assert "assert_is_not_number" "${2}" "'${1}' is a number"
+}
+
+function assert_is_zero
+{
+    #===============================================================================
+    #          NAME:  assert_is_zero
+    #   DESCRIPTION:  
+    #         USAGE:  assert_is_zero <num> [<usermessage>]
+    #       RETURNS:  
+    #===============================================================================
+
+    assert_number_eq 0 "${1}" >/dev/null 2>&1 || return 0
+
+    assert "assert_is_zero" "${2}" "'${1}' is not equal to zero"
+}
+
+function assert_is_not_zero
+{
+    #===============================================================================
+    #          NAME:  assert_is_not_zero
+    #   DESCRIPTION:  
+    #         USAGE:  assert_is_not_zero <num> [<usermessage>]
+    #       RETURNS:  
+    #===============================================================================
+
+    assert_number_ne 0 "${1}" >/dev/null 2>&1 || return 0
+
+    assert "assert_is_not_zero" "${2}" "'${1}' is equal to zero"
+}
+
+function assert_is_positive
+{
+    #===============================================================================
+    #          NAME:  assert_is_positive
+    #   DESCRIPTION:  
+    #         USAGE:  assert_is_positive <num> [<usermessage>]
+    #       RETURNS:  
+    #===============================================================================
+
+    assert_number_ge 0 "${1}" >/dev/null 2>&1 || return 0
+
+    assert "assert_is_positive" "${2}" "'${1}' is not a positive number"
+}
+
+function assert_is_negative
+{
+    #===============================================================================
+    #          NAME:  assert_is_negative
+    #   DESCRIPTION:  
+    #         USAGE:  assert_is_negative <num> [<usermessage>]
+    #       RETURNS:  
+    #===============================================================================
+
+    assert_number_lt 0 "${1}" >/dev/null 2>&1 || return 0
+
+    assert "assert_is_negative" "${2}" "'${1}' is not a negative number"
 }
