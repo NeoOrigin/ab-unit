@@ -54,7 +54,7 @@ function assert
 
     fi
 
-    echo "${NAMED_FUNCTION}: ${CUSTOM_ERR}" >&2
+    printf "%s: %s\n" "${NAMED_FUNCTION}" "${CUSTOM_ERR}" >&2
     return 1
 }
 

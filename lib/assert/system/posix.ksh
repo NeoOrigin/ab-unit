@@ -320,11 +320,7 @@ function assert_symbolic_link_exists
     #       RETURNS:  
     #===============================================================================
 
-    if [ -L "${1}" ] ; then
-
-        return 0
-
-    fi
+    [ -L "${1}" ] && return 0
 
     assert "assert_symbolic_exists" "${2}" "Symbolic link ${1} not found"
 }
@@ -352,11 +348,7 @@ function assert_socket_exists
     #       RETURNS:  
     #===============================================================================
 
-    if [ -S "${1}" ] ; then
-
-        return 0
-
-    fi
+    [ -S "${1}" ] && return 0
 
     assert "assert_socket_exists" "${2}" "Socket ${1} not found"
 }

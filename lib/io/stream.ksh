@@ -136,7 +136,7 @@ function stream_substring
 
     if [ -n "${UTIL_LENGTH}" ] ; then
 
-        (( UTIL_LENGTH += ( UTIL_START - 1 ) ))
+        UTIL_LENGTH=$(( UTIL_LENGTH + ( UTIL_START - 1 ) ))
 
     fi
 

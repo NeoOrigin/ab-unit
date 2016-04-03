@@ -253,7 +253,7 @@ function ab_unit_enable_test
     TEST_SUITE="${1}"
     TEST_NAME="${2}"
 
-    AB_UNIT_REGISTERED_TESTS=$(echo "${AB_UNIT_REGISTERED_TESTS}" | sed "s|.:${TEST_SUITE}:${TEST_NAME}|${AB_UNIT_ENABLE_FLAG}:${TEST_SUITE}:${TEST_NAME}|g")
+    AB_UNIT_REGISTERED_TESTS=$(echo "${AB_UNIT_REGISTERED_TESTS}" | sed "s|^.:${TEST_SUITE}:${TEST_NAME}$|${AB_UNIT_ENABLE_FLAG}:${TEST_SUITE}:${TEST_NAME}|g")
 }
 
 function ab_unit_disable_test
@@ -268,7 +268,7 @@ function ab_unit_disable_test
     TEST_SUITE="${1}"
     TEST_NAME="${2}"
 
-    AB_UNIT_REGISTERED_TESTS=$(echo "${AB_UNIT_REGISTERED_TESTS}" | sed "s|.:${TEST_SUITE}:${TEST_NAME}|${AB_UNIT_DISABLE_FLAG}:${TEST_SUITE}:${TEST_NAME}|g")
+    AB_UNIT_REGISTERED_TESTS=$(echo "${AB_UNIT_REGISTERED_TESTS}" | sed "s|^.:${TEST_SUITE}:${TEST_NAME}$|${AB_UNIT_DISABLE_FLAG}:${TEST_SUITE}:${TEST_NAME}|g")
 }
 
 function ab_unit_get_enabled_tests

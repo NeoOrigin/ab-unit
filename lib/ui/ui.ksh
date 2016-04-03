@@ -65,17 +65,17 @@ function ui_print_label
     typeset UI_X="${2}"
     typeset UI_Y="${3}"
     typeset UI_WIDTH="${4}"
-    typeset UI_ALIGN="${5}"
+    typeset -u UI_ALIGN="${5}"
 
     typeset UI_TEMP_CHAR=""
 
     if [ "${UI_WIDTH}" -ge 0 ] ; then
-
+        
         case "${UI_ALIGN}" in
 
-            right ) UI_TEMP_CHAR="-R"
+            RIGHT ) UI_TEMP_CHAR="-R"
                     ;;
-            left  ) UI_TEMP_CHAR="-L"
+            LEFT  ) UI_TEMP_CHAR="-L"
                     ;;
 
         esac
@@ -125,16 +125,17 @@ function ui_print_box
     ui_print_line "${UI_X}" "${UI_Y}" "${UI_WIDTH}"
 
     # Normalise the width to real X co-ordinates
-    let UI_WIDTH="UI_WIDTH + UI_X"
-    let UI_HEIGHT="UI_HEIGHT + UI_Y"
+    UI_WIDTH=$(( UI_WIDTH + UI_X ))
+    UI_HEIGHT=$(( UI_HEIGHT + UI_Y ))
 
     typeset -i UI_Y_POS="${UI_Y}"
+    
     while [ "${UI_Y_POS}" -lt "${UI_HEIGHT}" ] ; do
 
         ui_print_pixel "|" "${UI_X}"     "${UI_Y_POS}"
         ui_print_pixel "|" "${UI_WIDTH}" "${UI_Y_POS}"
 
-        (( UI_Y_POS += 1 ))
+        UI_Y_POS=$(( UI_Y_POS + 1 ))
 
     done
 
@@ -156,7 +157,7 @@ function ui_print_text_area
     typeset UI_Y="${3}"
     typeset UI_WIDTH="${4}"
     typeset UI_HEIGHT="${5}"
-    typeset UI_WITH_BORDER="${6}"
+    typeset -u UI_WITH_BORDER="${6}"
 
     typeset H_VAR=0
 
@@ -167,14 +168,14 @@ function ui_print_text_area
         ui_print_line "${UI_X}" "${UI_Y}" "${UI_WIDTH}"
 
         H_VAR=1
-        (( UI_AREA = UI_WIDTH - 2 ))        # Minus the 2 border characters |
+        UI_AREA=$(( UI_WIDTH - 2 ))        # Minus the 2 border characters |
 
     fi
 
     typeset -L${UI_AREA} UI_TEMP=""
     string_word_wrap "${UI_TEXT}" "${UI_AREA}" | while read line ; do
 
-        if [ ${H_VAR} -ge ${UI_HEIGHT} ] ; then
+        if [ "${H_VAR}" -ge "${UI_HEIGHT}" ] ; then
 
             break
 
@@ -192,11 +193,11 @@ function ui_print_text_area
     
         fi
 
-        (( H_VAR += 1 ))
+        H_VAR=$(( H_VAR + 1 ))
 
     done
 
-    while [ ${H_VAR} -lt ${UI_HEIGHT} ] ; do
+    while [ "${H_VAR}" -lt "${UI_HEIGHT}" ] ; do
 
         UI_TEMP=" "
         if [ "X${UI_WITH_BORDER}" == "XY" ] ; then
@@ -209,7 +210,7 @@ function ui_print_text_area
 
         fi
 
-        (( H_VAR += 1 ))
+        H_VAR=$(( H_VAR + 1 ))
 
     done
 
@@ -255,7 +256,7 @@ function ui_print_spinner
 
     while true; do
 
-        (( UI_CNT += 1 ))
+        UI_CNT=$(( UI_CNT + 1 ))
 
         case "${UI_CNT}" in
 
@@ -359,7 +360,7 @@ function ui_print_table_row
     set -A COL_SIZE_ARR ${UI_COLS_SIZE}
     set -A COL_VALUE_ARR ${UI_COLS_VALUES}
 
-    (( UI_WIDTH -= ((${#COL_SIZE_ARR[*]} * 3) + 1) )) # 2 spaces for every column, one border + one last border
+    UI_WIDTH=$(( UI_WIDTH - ((${#COL_SIZE_ARR[*]} * 3) + 1) )) # 2 spaces for every column, one border + one last border
 
 
     #
@@ -382,7 +383,7 @@ function ui_print_table_row
         terminal_addstr "| ${UI_PADDING} "
 
 
-        (( i += 1 ))
+        i=$(( i + 1 ))
 
     done
 
